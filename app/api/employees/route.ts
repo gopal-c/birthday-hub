@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getEmployees, saveEmployees } from "@/lib/storage";
 import type { Employee } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 import { randomUUID } from "crypto";
 
 export async function GET() {
