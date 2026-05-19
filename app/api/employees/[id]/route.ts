@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getEmployee, upsertEmployee, deleteEmployee } from "@/lib/storage";
 
+export const dynamic = "force-dynamic";
+
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const existing = await getEmployee(params.id);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
