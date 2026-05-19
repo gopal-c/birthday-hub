@@ -35,7 +35,8 @@ export default function Home() {
       body: JSON.stringify(data),
     });
     if (!res.ok) { alert(`Failed to add employee: ${res.status} ${await res.text()}`); return; }
-    await fetchData();
+    const created: Employee = await res.json();
+    setEmployees((prev) => [...prev, created]);
   }
 
   async function handleEdit(id: string, data: Omit<Employee, "id" | "createdAt">) {
@@ -45,13 +46,14 @@ export default function Home() {
       body: JSON.stringify(data),
     });
     if (!res.ok) { alert(`Failed to update employee: ${res.status} ${await res.text()}`); return; }
-    await fetchData();
+    const updated: Employee = await res.json();
+    setEmployees((prev) => prev.map((e) => e.id === id ? updated : e));
   }
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/employees/${id}`, { method: "DELETE" });
     if (!res.ok) { alert(`Failed to delete employee: ${res.status} ${await res.text()}`); return; }
-    await fetchData();
+    setEmployees((prev) => prev.filter((e) => e.id !== id));
   }
 
   function handleCompose(emp: Employee) {
