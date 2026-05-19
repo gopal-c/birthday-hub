@@ -1,11 +1,8 @@
+import { put, list } from "@vercel/blob";
 import type { Employee, SendLog } from "./types";
 
 const EMP_BLOB = "bh-employees.json";
 const LOG_BLOB = "bh-logs.json";
-
-// In-memory URL cache: pathname → public blob URL.
-// Populated on first write; on cache miss we list once to find the URL.
-const urlCache: Record<string, string> = {};
 
 // In-memory fallback for local dev without a Blob token.
 const memStore: Record<string, unknown> = {};
@@ -14,24 +11,25 @@ function hasBlobToken(): boolean {
   return !!process.env.BLOB_READ_WRITE_TOKEN;
 }
 
+// With addRandomSuffix: false the URL is deterministic:
+// https://<storeId>.public.blob.vercel-storage.com/<pathname>
+// The store ID is the segment between "vercel_blob_rw_" and the next "_".
+function blobUrl(pathname: string): string {
+  const token = process.env.BLOB_READ_WRITE_TOKEN!;
+  const storeId = token.match(/^vercel_blob_rw_([^_]+)_/)?.[1];
+  if (!storeId) throw new Error("Cannot parse store ID from BLOB_READ_WRITE_TOKEN");
+  return `https://${storeId}.public.blob.vercel-storage.com/${pathname}`;
+}
+
 async function blobRead<T>(pathname: string): Promise<T | null> {
   if (!hasBlobToken()) {
     return (memStore[pathname] as T) ?? null;
   }
 
-  let url = urlCache[pathname];
-
-  if (!url) {
-    const { list } = await import("@vercel/blob");
-    const { blobs } = await list({ prefix: pathname });
-    const match = blobs.find((b) => b.pathname === pathname);
-    if (!match) return null;
-    url = match.url;
-    urlCache[pathname] = url;
-  }
-
+  const url = blobUrl(pathname);
   const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Blob fetch failed: ${res.status} ${url}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Blob read failed: ${res.status} ${url}`);
   return (await res.json()) as T;
 }
 
@@ -41,13 +39,12 @@ async function blobWrite(pathname: string, value: unknown): Promise<void> {
     return;
   }
 
-  const { put } = await import("@vercel/blob");
-  const result = await put(pathname, JSON.stringify(value), {
+  await put(pathname, JSON.stringify(value), {
     access: "public",
     addRandomSuffix: false,
     contentType: "application/json",
+    cacheControlMaxAge: 0,
   });
-  urlCache[pathname] = result.url;
 }
 
 // ── Employees ────────────────────────────────────────────────────────────────

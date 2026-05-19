@@ -29,25 +29,28 @@ export default function Home() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   async function handleAdd(data: Omit<Employee, "id" | "createdAt">) {
-    await fetch("/api/employees", {
+    const res = await fetch("/api/employees", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    if (!res.ok) { alert(`Failed to add employee: ${res.status} ${await res.text()}`); return; }
     await fetchData();
   }
 
   async function handleEdit(id: string, data: Omit<Employee, "id" | "createdAt">) {
-    await fetch(`/api/employees/${id}`, {
+    const res = await fetch(`/api/employees/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    if (!res.ok) { alert(`Failed to update employee: ${res.status} ${await res.text()}`); return; }
     await fetchData();
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/employees/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/employees/${id}`, { method: "DELETE" });
+    if (!res.ok) { alert(`Failed to delete employee: ${res.status} ${await res.text()}`); return; }
     await fetchData();
   }
 
