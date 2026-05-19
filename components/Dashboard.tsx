@@ -166,7 +166,7 @@ export default function Dashboard({ employees, logs, onCompose }: Props) {
                 <span className="text-sm">{log.status === "sent" ? "✅" : "❌"}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-700 truncate">{log.employeeName}</p>
-                  <p className="text-xs text-gray-400">{new Date(log.sentAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
+                  <p className="text-xs text-gray-400">{new Date(log.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${log.status === "sent" ? "bg-teal-50 text-teal-700" : "bg-red-50 text-red-600"}`}>
                   {log.status}

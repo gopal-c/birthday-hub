@@ -106,7 +106,7 @@ export default function Home() {
           </nav>
 
           <div className="text-xs text-gray-400">
-            {new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+            {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
           </div>
         </div>
       </header>
