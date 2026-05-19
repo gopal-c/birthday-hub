@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
+
+// Cron feature temporarily disabled.
+export async function GET(_req: NextRequest) {
+  return NextResponse.json({ disabled: true, message: "Cron feature is disabled" }, { status: 503 });
+}
+
+/* Original implementation — re-enable by restoring this block and the schedule in vercel.json.
 import nodemailer from "nodemailer";
 import Anthropic from "@anthropic-ai/sdk";
 import { getEmployees, getLogs, appendLog, todayMMDD, alreadySentThisYear } from "@/lib/storage";
@@ -91,3 +98,4 @@ Start with "Dear ${employee.name},". Personal, heartfelt, no clichés. No subjec
 
   return NextResponse.json({ sent, failed, total: birthdayPeople.length });
 }
+*/
