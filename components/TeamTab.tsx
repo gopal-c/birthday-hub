@@ -212,9 +212,9 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
         {/* Header */}
         <div className="grid grid-cols-12 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-400 uppercase tracking-wide">
           <div className="col-span-4">Name</div>
-          <div className="col-span-3">Department</div>
+          <div className="col-span-2">Department</div>
           <div className="col-span-2">Birthday</div>
-          <div className="col-span-3 text-right">Actions</div>
+          <div className="col-span-4 text-right">Actions</div>
         </div>
 
         {filtered.length === 0 && (
@@ -240,7 +240,7 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
                 </div>
               </div>
               {/* Dept */}
-              <div className="col-span-3">
+              <div className="col-span-2">
                 {e.department ? (
                   <span className="dept-badge" style={{ background: c.bg, color: c.text }}>{e.department}</span>
                 ) : (
@@ -252,7 +252,7 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
                 <p className="text-sm text-gray-700">{fmtBirthday(e.birthday)}</p>
               </div>
               {/* Actions */}
-              <div className="col-span-3 flex justify-end gap-2">
+              <div className="col-span-4 flex justify-end gap-2">
                 <button onClick={() => onCompose(e)}
                   className="text-xs text-[#2D1B69] border border-[#2D1B69]/20 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors">
                   ✉ Compose
