@@ -1,53 +1,31 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    return NextResponse.json({ blob: false, message: "BLOB_READ_WRITE_TOKEN is not set" });
+  const hasDb = !!process.env.POSTGRES_URL;
+
+  if (!hasDb) {
+    return NextResponse.json({ db: false, message: "POSTGRES_URL is not set — using in-memory fallback" });
   }
 
-  const storeId = token.match(/^vercel_blob_rw_([^_]+)_/)?.[1] ?? "unknown";
-
   try {
-    const { put, list } = await import("@vercel/blob");
+    const { sql } = await import("@vercel/postgres");
 
-    // Test write
-    let writeUrl: string | null = null;
-    let writeError: string | null = null;
-    try {
-      const result = await put("bh-debug-test.json", JSON.stringify({ ok: true, ts: Date.now() }), {
-        access: "public",
-        addRandomSuffix: false,
-        contentType: "application/json",
-        cacheControlMaxAge: 0,
-      });
-      writeUrl = result.url;
-    } catch (e) {
-      writeError = String(e);
-    }
+    // Verify connectivity and list tables
+    const { rows: tables } = await sql`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name IN ('employees', 'send_logs')
+    `;
 
-    // Test read
-    let readOk: boolean | null = null;
-    let readError: string | null = null;
-    if (writeUrl) {
-      try {
-        const res = await fetch(writeUrl, { cache: "no-store" });
-        readOk = res.ok;
-      } catch (e) {
-        readError = String(e);
-      }
-    }
-
-    const { blobs } = await list();
+    const { rows: empRows } = await sql`SELECT COUNT(*) AS count FROM employees`;
+    const { rows: logRows } = await sql`SELECT COUNT(*) AS count FROM send_logs`;
 
     return NextResponse.json({
-      blob: true,
-      storeId,
-      write: writeError ? { ok: false, error: writeError } : { ok: true, url: writeUrl },
-      read: readError ? { ok: false, error: readError } : { ok: readOk },
-      blobs: blobs.map((b) => ({ pathname: b.pathname, size: b.size })),
+      db: true,
+      tables: tables.map((t) => t.table_name),
+      employees: Number(empRows[0]?.count ?? 0),
+      logs: Number(logRows[0]?.count ?? 0),
     });
   } catch (e) {
-    return NextResponse.json({ blob: true, storeId, error: String(e) }, { status: 500 });
+    return NextResponse.json({ db: true, error: String(e) }, { status: 500 });
   }
 }
