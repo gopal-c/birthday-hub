@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 
 export async function POST(req: Request) {
-  console.log("ANTHROPIC_API_KEY present:", !!process.env.ANTHROPIC_API_KEY);
+  console.log("GROQ_API_KEY present:", !!process.env.GROQ_API_KEY);
 
   const { name, department, notes } = await req.json();
 
@@ -13,11 +13,10 @@ export async function POST(req: Request) {
   const extraContext = notes ? `\nExtra context about this person: ${notes}` : "";
 
   try {
-    // Instantiate inside handler so a missing key throws here, not at module load
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-    const msg = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       max_tokens: 300,
       messages: [
         {
@@ -35,7 +34,7 @@ Rules:
       ],
     });
 
-    const text = msg.content[0].type === "text" ? msg.content[0].text : "";
+    const text = completion.choices[0]?.message?.content ?? "";
     return NextResponse.json({ message: text });
   } catch (err) {
     console.error("Generate error:", err);

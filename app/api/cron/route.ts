@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest) {
 
 /* Original implementation — re-enable by restoring this block and the schedule in vercel.json.
 import nodemailer from "nodemailer";
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { getEmployees, getLogs, appendLog, todayMMDD, alreadySentThisYear } from "@/lib/storage";
 import { buildEmailHTML } from "@/lib/email-template";
 import { randomUUID } from "crypto";
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent: 0, message: "No birthdays today" });
   }
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const fromName = process.env.GMAIL_FROM_NAME || "The HR Team";
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -40,9 +40,8 @@ export async function GET(req: NextRequest) {
 
   const results = await Promise.allSettled(
     birthdayPeople.map(async (employee) => {
-      // Generate message
-      const msg = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
         max_tokens: 300,
         messages: [
           {
@@ -52,9 +51,9 @@ Start with "Dear ${employee.name},". Personal, heartfelt, no clichés. No subjec
           },
         ],
       });
-      const message = msg.content[0].type === "text" ? msg.content[0].text : `Dear ${employee.name},\n\nWishing you a wonderful birthday today! Your contributions to ${employee.department} are truly appreciated.`;
+      const message = completion.choices[0]?.message?.content
+        ?? `Dear ${employee.name},\n\nWishing you a wonderful birthday today! Your contributions to ${employee.department} are truly appreciated.`;
 
-      // Send email
       const html = buildEmailHTML(employee.name, employee.department, message, fromName);
       await transporter.sendMail({
         from: `"${fromName}" <${process.env.GMAIL_USER}>`,
@@ -79,7 +78,6 @@ Start with "Dear ${employee.name},". Personal, heartfelt, no clichés. No subjec
   const sent = results.filter((r) => r.status === "fulfilled").length;
   const failed = results.filter((r) => r.status === "rejected").length;
 
-  // Log failures
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     if (r.status === "rejected") {
