@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 export async function POST(req: Request) {
+  console.log("ANTHROPIC_API_KEY present:", !!process.env.ANTHROPIC_API_KEY);
+
   const { name, department, notes } = await req.json();
 
   if (!name) {
@@ -13,6 +13,9 @@ export async function POST(req: Request) {
   const extraContext = notes ? `\nExtra context about this person: ${notes}` : "";
 
   try {
+    // Instantiate inside handler so a missing key throws here, not at module load
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
     const msg = await client.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 300,
@@ -35,7 +38,7 @@ Rules:
     const text = msg.content[0].type === "text" ? msg.content[0].text : "";
     return NextResponse.json({ message: text });
   } catch (err) {
-    console.error("Anthropic error:", err);
-    return NextResponse.json({ error: "Failed to generate message" }, { status: 500 });
+    console.error("Generate error:", err);
+    return NextResponse.json({ error: "Failed to generate message", detail: String(err) }, { status: 500 });
   }
 }

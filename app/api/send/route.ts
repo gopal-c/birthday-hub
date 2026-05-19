@@ -15,6 +15,9 @@ function getTransporter() {
 }
 
 export async function POST(req: Request) {
+  console.log("GMAIL_USER present:", !!process.env.GMAIL_USER);
+  console.log("GMAIL_APP_PASSWORD present:", !!process.env.GMAIL_APP_PASSWORD);
+
   const { employeeId, message } = await req.json();
 
   if (!employeeId || !message) {

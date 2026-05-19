@@ -41,11 +41,18 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
         body: JSON.stringify({ name: target.name, department: target.department, notes: target.notes }),
       });
       const data = await res.json();
-      if (data.message) {
-        setMessage(data.message);
-        await fetchPreview(target, data.message);
+      console.log("generate response:", data);
+      const text = data.message || "";
+      setMessage(text);
+      if (text) {
+        try {
+          await fetchPreview(target, text);
+        } catch (previewErr) {
+          console.error("fetchPreview failed:", previewErr);
+        }
       }
-    } catch {
+    } catch (err) {
+      console.error("generate failed:", err);
       setMessage(`Dear ${target.name},\n\nWishing you a wonderful birthday! Your contributions to the ${target.department} team are truly valued. Hope today is as amazing as you are!`);
     }
     setGenerating(false);
