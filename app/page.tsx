@@ -37,6 +37,15 @@ export default function Home() {
     await fetchData();
   }
 
+  async function handleEdit(id: string, data: Omit<Employee, "id" | "createdAt">) {
+    await fetch(`/api/employees/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    await fetchData();
+  }
+
   async function handleDelete(id: string) {
     await fetch(`/api/employees/${id}`, { method: "DELETE" });
     await fetchData();
@@ -118,6 +127,7 @@ export default function Home() {
               <TeamTab
                 employees={employees}
                 onAdd={handleAdd}
+                onEdit={handleEdit}
                 onDelete={handleDelete}
                 onImport={() => setShowImport(true)}
                 onCompose={handleCompose}

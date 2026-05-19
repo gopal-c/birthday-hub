@@ -25,17 +25,20 @@ const EMPTY_FORM = { name: "", email: "", department: "", birthday: "", notes: "
 interface Props {
   employees: Employee[];
   onAdd: (data: Omit<Employee, "id" | "createdAt">) => Promise<void>;
+  onEdit: (id: string, data: Omit<Employee, "id" | "createdAt">) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onImport: () => void;
   onCompose: (emp: Employee) => void;
 }
 
-export default function TeamTab({ employees, onAdd, onDelete, onImport, onCompose }: Props) {
+export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, onCompose }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState(EMPTY_FORM);
 
   const filtered = employees.filter(
     (e) =>
@@ -62,6 +65,25 @@ export default function TeamTab({ employees, onAdd, onDelete, onImport, onCompos
   // Convert MM-DD to YYYY-MM-DD for the input
   function toInputDate(mmdd: string) {
     return mmdd ? `2000-${mmdd}` : "";
+  }
+
+  function openEdit(emp: Employee) {
+    setShowForm(false);
+    setEditId(emp.id);
+    setEditForm({ name: emp.name, email: emp.email, department: emp.department || "", birthday: emp.birthday, notes: emp.notes || "" });
+  }
+
+  function cancelEdit() {
+    setEditId(null);
+    setEditForm(EMPTY_FORM);
+  }
+
+  async function handleEdit() {
+    if (!editId || !editForm.name || !editForm.email || !editForm.birthday) return;
+    setSaving(true);
+    await onEdit(editId, { name: editForm.name.trim(), email: editForm.email.trim().toLowerCase(), department: editForm.department.trim(), birthday: editForm.birthday, notes: editForm.notes.trim() || undefined });
+    cancelEdit();
+    setSaving(false);
   }
 
   return (
@@ -134,6 +156,57 @@ export default function TeamTab({ employees, onAdd, onDelete, onImport, onCompos
         </div>
       )}
 
+      {/* Edit form */}
+      {editId && (
+        <div className="bg-white border border-[#2D1B69]/20 rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-gray-800 mb-4">Edit Team Member</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Full name *</label>
+              <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Sarah Chen"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Work email *</label>
+              <input type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="sarah@company.com"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Department</label>
+              <input value={editForm.department} onChange={(e) => setEditForm((f) => ({ ...f, department: e.target.value }))}
+                placeholder="Engineering"
+                list="depts-edit"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50" />
+              <datalist id="depts-edit">
+                {Object.keys(DEPT_COLORS).map((d) => <option key={d} value={d} />)}
+              </datalist>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Birthday (month & day) *</label>
+              <input type="date" value={toInputDate(editForm.birthday)}
+                onChange={(e) => setEditForm((f) => ({ ...f, birthday: e.target.value.slice(5) }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs text-gray-500 block mb-1">Notes (optional)</label>
+              <input value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="Loves coffee, dog parent, joined 2021…"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button onClick={cancelEdit}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={handleEdit} disabled={!editForm.name || !editForm.email || !editForm.birthday || saving}
+              className="px-4 py-2 text-sm text-white bg-[#2D1B69] rounded-lg hover:bg-[#3d2580] disabled:opacity-40">
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* List */}
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         {/* Header */}
@@ -183,6 +256,11 @@ export default function TeamTab({ employees, onAdd, onDelete, onImport, onCompos
                 <button onClick={() => onCompose(e)}
                   className="text-xs text-[#2D1B69] border border-[#2D1B69]/20 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors">
                   ✉ Compose
+                </button>
+                <button onClick={() => openEdit(e)}
+                  title="Edit"
+                  className={`text-xs border px-2 py-1.5 rounded-lg transition-colors ${editId === e.id ? "text-[#2D1B69] border-[#2D1B69]/40 bg-[#2D1B69]/5" : "text-gray-400 border-gray-100 hover:bg-[#2D1B69]/5 hover:text-[#2D1B69] hover:border-[#2D1B69]/30"}`}>
+                  ✏
                 </button>
                 {confirm === e.id ? (
                   <>
