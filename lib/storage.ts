@@ -1,41 +1,67 @@
 import type { Employee, SendLog } from "./types";
 
-// ── In-memory fallback for local dev without KV ──────────────────────────────
-const mem: Record<string, unknown> = {};
+const EMP_BLOB = "bh-employees.json";
+const LOG_BLOB = "bh-logs.json";
 
-async function kvGet<T>(key: string): Promise<T | null> {
-  if (
-    process.env.KV_REST_API_URL &&
-    process.env.KV_REST_API_TOKEN
-  ) {
-    const { kv } = await import("@vercel/kv");
-    return kv.get<T>(key);
-  }
-  return (mem[key] as T) ?? null;
+// In-memory URL cache: pathname → public blob URL.
+// Populated on first write; on cache miss we list once to find the URL.
+const urlCache: Record<string, string> = {};
+
+// In-memory fallback for local dev without a Blob token.
+const memStore: Record<string, unknown> = {};
+
+function hasBlobToken(): boolean {
+  return !!process.env.BLOB_READ_WRITE_TOKEN;
 }
 
-async function kvSet(key: string, value: unknown): Promise<void> {
-  if (
-    process.env.KV_REST_API_URL &&
-    process.env.KV_REST_API_TOKEN
-  ) {
-    const { kv } = await import("@vercel/kv");
-    await kv.set(key, value);
+async function blobRead<T>(pathname: string): Promise<T | null> {
+  if (!hasBlobToken()) {
+    return (memStore[pathname] as T) ?? null;
+  }
+
+  let url = urlCache[pathname];
+
+  if (!url) {
+    const { list } = await import("@vercel/blob");
+    const { blobs } = await list({ prefix: pathname });
+    const match = blobs.find((b) => b.pathname === pathname);
+    if (!match) return null;
+    url = match.url;
+    urlCache[pathname] = url;
+  }
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function blobWrite(pathname: string, value: unknown): Promise<void> {
+  if (!hasBlobToken()) {
+    memStore[pathname] = value;
     return;
   }
-  mem[key] = value;
+
+  const { put } = await import("@vercel/blob");
+  const result = await put(pathname, JSON.stringify(value), {
+    access: "public",
+    addRandomSuffix: false,
+    contentType: "application/json",
+  });
+  urlCache[pathname] = result.url;
 }
 
 // ── Employees ────────────────────────────────────────────────────────────────
-const EMP_KEY = "bh:employees";
 
 export async function getEmployees(): Promise<Employee[]> {
-  const data = await kvGet<Employee[]>(EMP_KEY);
-  return data ?? [];
+  return (await blobRead<Employee[]>(EMP_BLOB)) ?? [];
 }
 
 export async function saveEmployees(employees: Employee[]): Promise<void> {
-  await kvSet(EMP_KEY, employees);
+  await blobWrite(EMP_BLOB, employees);
 }
 
 export async function getEmployee(id: string): Promise<Employee | null> {
@@ -57,20 +83,19 @@ export async function deleteEmployee(id: string): Promise<void> {
 }
 
 // ── Send Logs ────────────────────────────────────────────────────────────────
-const LOG_KEY = "bh:logs";
 
 export async function getLogs(): Promise<SendLog[]> {
-  const data = await kvGet<SendLog[]>(LOG_KEY);
-  return data ?? [];
+  return (await blobRead<SendLog[]>(LOG_BLOB)) ?? [];
 }
 
 export async function appendLog(log: SendLog): Promise<void> {
   const all = await getLogs();
   all.unshift(log); // newest first
-  await kvSet(LOG_KEY, all.slice(0, 200)); // keep last 200
+  await blobWrite(LOG_BLOB, all.slice(0, 200)); // keep last 200
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
 export function todayMMDD(): string {
   const n = new Date();
   const m = String(n.getMonth() + 1).padStart(2, "0");
