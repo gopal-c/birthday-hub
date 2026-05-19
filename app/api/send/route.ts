@@ -6,17 +6,21 @@ import { randomUUID } from "crypto";
 
 function getTransporter() {
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
     },
+    tls: { rejectUnauthorized: false },
   });
 }
 
 export async function POST(req: Request) {
   console.log("GMAIL_USER present:", !!process.env.GMAIL_USER);
   console.log("GMAIL_APP_PASSWORD present:", !!process.env.GMAIL_APP_PASSWORD);
+  console.log("GMAIL_USER value:", process.env.GMAIL_USER);
 
   const { employeeId, message } = await req.json();
 
@@ -52,6 +56,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, to: employee.email });
   } catch (err: unknown) {
+    console.error("Gmail error full details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
     const errorMsg = err instanceof Error ? err.message : String(err);
     await appendLog({
       id: randomUUID(),
@@ -62,8 +67,6 @@ export async function POST(req: Request) {
       status: "failed",
       error: errorMsg,
     });
-
-    console.error("Send error:", err);
     return NextResponse.json({ error: "Failed to send email", detail: errorMsg }, { status: 500 });
   }
 }
