@@ -30,13 +30,9 @@ async function blobRead<T>(pathname: string): Promise<T | null> {
     urlCache[pathname] = url;
   }
 
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Blob fetch failed: ${res.status} ${url}`);
+  return (await res.json()) as T;
 }
 
 async function blobWrite(pathname: string, value: unknown): Promise<void> {
