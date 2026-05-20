@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
 export async function POST(req: Request) {
-  console.log("GROQ_API_KEY present:", !!process.env.GROQ_API_KEY);
-
   const { name, department, notes } = await req.json();
 
   if (!name) {
@@ -21,23 +19,44 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "user",
-          content: `Write a warm, genuine birthday message for ${name}${department ? `, who works in ${department}` : ""}.${extraContext}
+          content: `Write a birthday message for ${name}${department ? `, who works in ${department}` : ""}.${extraContext}
+
+Return ONLY a valid JSON object with no extra text or markdown, exactly like this:
+{
+  "message": "Dear ${name}, [exactly 1 warm, personal, heartfelt birthday sentence — not generic]",
+  "mood": "[one upbeat word that fits ${name}'s vibe or role today, e.g. Radiant, Creative, Stellar, Focused, Bright]",
+  "fuel": "[what ${name} probably runs on — a drink or snack, 1-2 words, e.g. Espresso, Cold Brew, Matcha, Green Tea, Pizza]"
+}
 
 Rules:
-- Write exactly 2 sentences, no more. Be warm and personal. Never write a third sentence.
-- Start with "Dear ${name},"
-- Make it personal and heartfelt, not generic
-- Reference their role or department naturally if provided
-- Do not include a subject line or sign-off
-- Do not use hollow phrases like "on this special day" or "may all your dreams come true"
-- Sound like it's from a real colleague who cares
-- STOP after 2 sentences. Do not continue.`,
+- message: exactly 1 sentence starting with "Dear ${name},"
+- mood: single capitalised word, energetic and positive, ideally hinting at their role or personality
+- fuel: 1-2 words max, fun and specific, ideally tied to their department or personality
+- Do NOT use hollow phrases like "on this special day"
+- Sound like it's from a real colleague who cares`,
         },
       ],
     });
 
-    const text = completion.choices[0]?.message?.content ?? "";
-    return NextResponse.json({ message: text });
+    const raw = completion.choices[0]?.message?.content ?? "";
+
+    // Parse JSON — strip any accidental markdown fences first
+    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    let message = "";
+    let mood = "Sunny";
+    let fuel = "Coffee";
+
+    try {
+      const parsed = JSON.parse(cleaned);
+      message = parsed.message ?? "";
+      mood = parsed.mood ?? "Sunny";
+      fuel = parsed.fuel ?? "Coffee";
+    } catch {
+      // Fallback: treat the whole response as the message
+      message = raw;
+    }
+
+    return NextResponse.json({ message, mood, fuel });
   } catch (err) {
     console.error("Generate error:", err);
     return NextResponse.json({ error: "Failed to generate message", detail: String(err) }, { status: 500 });

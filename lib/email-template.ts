@@ -38,20 +38,41 @@ export function buildEmailHTML(
   department: string,
   message: string,
   fromName = "The HR Team",
-  illustrationIndex?: number
+  illustrationIndex?: number,
+  mood = "Sunny",
+  fuel = "Coffee",
+  logoUrl?: string
 ): string {
   const seed =
     illustrationIndex !== undefined && illustrationIndex >= 0
-      ? illustrationIndex * 137 + 42          // deterministic from index
+      ? illustrationIndex * 137 + 42
       : Math.floor(Math.random() * 1000);
 
   const escaped = {
-    name:     esc(name),
-    msg:      esc(twoSentences(message)).replace(/\n/g, "<br>"),
-    from:     esc(fromName),
-    date:     esc(formatDate()),
-    imgUrl:   imageUrl(seed),
+    name:    esc(name),
+    msg:     esc(twoSentences(message)).replace(/\n/g, "<br>"),
+    from:    esc(fromName),
+    date:    esc(formatDate()),
+    imgUrl:  imageUrl(seed),
+    mood:    esc(mood),
+    fuel:    esc(fuel),
   };
+
+  // ── Logo: gif if URL provided, else text pill ─────────────────────────────
+  const logoPill = logoUrl
+    ? `<span style="display:inline-block;background:#ffffff;border-radius:12px;
+                    padding:8px 12px;
+                    box-shadow:0 4px 16px -6px rgba(58,26,42,0.18),0 1px 0 rgba(255,255,255,0.7) inset;">
+         <img src="${esc(logoUrl)}" alt="Logo" height="22"
+              style="display:block;height:22px;width:auto;border:0;" />
+       </span>`
+    : `<span style="display:inline-block;background:#ffffff;border-radius:12px;
+                    padding:8px 14px;
+                    box-shadow:0 4px 16px -6px rgba(58,26,42,0.18),0 1px 0 rgba(255,255,255,0.7) inset;
+                    font-size:13px;font-weight:700;color:#3a1a2a;
+                    font-family:'Inter Tight',system-ui,sans-serif;letter-spacing:-0.01em;">
+         🎈 Birthday Hub
+       </span>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -79,14 +100,7 @@ export function buildEmailHTML(
               style="margin-bottom:28px;">
               <tr>
                 <td>
-                  <span style="display:inline-block;background:#ffffff;border-radius:12px;
-                               padding:8px 14px;
-                               box-shadow:0 4px 16px -6px rgba(58,26,42,0.18),0 1px 0 rgba(255,255,255,0.7) inset;
-                               font-size:13px;font-weight:700;color:#3a1a2a;
-                               font-family:'Inter Tight',system-ui,sans-serif;
-                               letter-spacing:-0.01em;">
-                    🎈 Birthday Hub
-                  </span>
+                  ${logoPill}
                 </td>
                 <td align="right">
                   <span style="display:inline-block;background:rgba(255,255,255,0.6);
@@ -100,17 +114,17 @@ export function buildEmailHTML(
               </tr>
             </table>
 
-            <!-- ── Hero image ── -->
+            <!-- ── Hero image (natural 5:3 ratio — no fixed height) ── -->
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
               <tr>
                 <td style="border-radius:24px;overflow:hidden;line-height:0;
                            box-shadow:0 20px 60px -20px rgba(58,26,42,0.25);
                            border:1px solid rgba(255,255,255,0.6);">
                   <img src="${escaped.imgUrl}"
-                       width="584" height="350"
+                       width="584"
                        alt="Birthday celebration"
-                       style="display:block;width:100%;height:350px;object-fit:cover;
-                              border-radius:24px;" />
+                       style="display:block;width:100%;height:auto;
+                              border-radius:24px;border:0;" />
                 </td>
               </tr>
             </table>
@@ -150,7 +164,7 @@ export function buildEmailHTML(
                             <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
                                         color:#3a1a2a;opacity:0.55;font-weight:600;
                                         font-family:'Inter Tight',system-ui,sans-serif;">Today</div>
-                            <div style="font-size:20px;font-weight:700;color:#3a1a2a;margin-top:4px;">🎂</div>
+                            <div style="font-size:22px;margin-top:4px;line-height:1;">🎂</div>
                           </td></tr>
                         </table>
                       </td>
@@ -162,8 +176,9 @@ export function buildEmailHTML(
                             <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
                                         color:#3a1a2a;opacity:0.55;font-weight:600;
                                         font-family:'Inter Tight',system-ui,sans-serif;">Mood</div>
-                            <div style="font-size:15px;font-weight:700;color:#3a1a2a;margin-top:4px;
-                                        font-family:'Inter Tight',system-ui,sans-serif;">Sunny ☀️</div>
+                            <div style="font-size:14px;font-weight:700;color:#3a1a2a;margin-top:4px;
+                                        letter-spacing:-0.01em;
+                                        font-family:'Inter Tight',system-ui,sans-serif;">${escaped.mood}</div>
                           </td></tr>
                         </table>
                       </td>
@@ -175,8 +190,9 @@ export function buildEmailHTML(
                             <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
                                         color:#3a1a2a;opacity:0.55;font-weight:600;
                                         font-family:'Inter Tight',system-ui,sans-serif;">Fuel</div>
-                            <div style="font-size:15px;font-weight:700;color:#3a1a2a;margin-top:4px;
-                                        font-family:'Inter Tight',system-ui,sans-serif;">Coffee ☕</div>
+                            <div style="font-size:14px;font-weight:700;color:#3a1a2a;margin-top:4px;
+                                        letter-spacing:-0.01em;
+                                        font-family:'Inter Tight',system-ui,sans-serif;">${escaped.fuel}</div>
                           </td></tr>
                         </table>
                       </td>

@@ -20,6 +20,8 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
   const [previewMode, setPreviewMode] = useState<"html" | "text">("html");
   const [showCredsModal, setShowCredsModal] = useState(false);
   const [pendingSend, setPendingSend] = useState(false);
+  const [mood, setMood] = useState("Sunny");
+  const [fuel, setFuel] = useState("Coffee");
 
   const selected = employees.find((e) => e.id === selectedId) || null;
 
@@ -44,8 +46,9 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
         body: JSON.stringify({ name: target.name, department: target.department, notes: target.notes }),
       });
       const data = await res.json();
-      console.log("generate response:", data);
       const text = data.message || "";
+      if (data.mood) setMood(data.mood);
+      if (data.fuel) setFuel(data.fuel);
       setMessage(text);
       if (text) {
         try {
@@ -91,6 +94,8 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
           gmailUser: creds.gmailUser,
           gmailAppPassword: creds.gmailAppPassword,
           fromName: creds.fromName,
+          mood,
+          fuel,
         }),
       });
       if (res.ok) {
