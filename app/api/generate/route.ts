@@ -21,12 +21,13 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "user",
-          content: `Write a warm, genuine 2–3 sentence birthday message for ${name}${department ? `, who works in ${department}` : ""}.${extraContext}
+          content: `Write a warm, genuine birthday message for ${name}${department ? `, who works in ${department}` : ""}.${extraContext}
 
 Rules:
+- Exactly 2 sentences — no more, no less
 - Start with "Dear ${name},"
 - Make it personal and heartfelt, not generic
-- Reference their role or department naturally
+- Reference their role or department naturally if provided
 - Do not include a subject line or sign-off
 - Do not use hollow phrases like "on this special day" or "may all your dreams come true"
 - Sound like it's from a real colleague who cares`,
