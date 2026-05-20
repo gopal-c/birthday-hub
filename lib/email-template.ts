@@ -11,12 +11,12 @@ const PROMPTS = [
 function imageUrl(idx: number): string {
   const seed   = Math.floor(Math.random() * 1000);
   const prompt = encodeURIComponent(PROMPTS[idx]);
-  return `https://image.pollinations.ai/prompt/${prompt}?width=560&height=220&nologo=true&seed=${seed}`;
+  return `https://image.pollinations.ai/prompt/${prompt}?width=560&height=320&nologo=true&seed=${seed}`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Trim the AI message to at most 2 sentences so it never runs long in the email. */
+/** Trim to at most 2 sentences so the message never runs long in the email. */
 function twoSentences(text: string): string {
   const sentences = text.match(/[^.!?]+[.!?]+(\s|$)/g);
   if (!sentences) return text;
@@ -65,15 +65,13 @@ export function buildEmailHTML(
   <tr><td align="center" style="padding:32px 16px;">
 
     <table width="600" cellpadding="0" cellspacing="0" role="presentation"
-      style="background:#ffffff;border-radius:16px;overflow:hidden;
-             box-shadow:0 8px 40px rgba(45,27,105,0.15);">
+      style="background:#ffffff;border-radius:20px;overflow:hidden;
+             box-shadow:0 8px 48px rgba(45,27,105,0.18);">
 
       <!-- ── Header ── -->
       <tr>
         <td style="background:#2D1B69;padding:60px 48px 48px;text-align:center;
                    border-radius:0 0 40px 40px;">
-
-          <!-- Balloon row (decorative; stripped gracefully if unsupported) -->
           <table cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 20px;">
             <tr>
               <td style="font-size:32px;letter-spacing:6px;line-height:1;">
@@ -81,7 +79,6 @@ export function buildEmailHTML(
               </td>
             </tr>
           </table>
-
           <p style="margin:0 0 8px;color:rgba(255,255,255,0.65);font-size:13px;
                     letter-spacing:2.5px;text-transform:uppercase;font-family:Georgia,serif;">
             Happy Birthday
@@ -95,12 +92,12 @@ export function buildEmailHTML(
 
       <!-- ── Pollinations image ── -->
       <tr>
-        <td style="padding:0 20px;line-height:0;background:#ffffff;">
+        <td style="padding:20px 24px 0;background:#ffffff;line-height:0;">
           <img src="${imageUrl(idx)}"
-               width="560" height="220"
+               width="552" height="320"
                alt="Birthday celebration"
-               style="display:block;width:560px;max-width:100%;height:220px;
-                      object-fit:cover;border-radius:0 0 12px 12px;" />
+               style="display:block;width:100%;height:320px;
+                      object-fit:cover;border-radius:16px;" />
         </td>
       </tr>
 

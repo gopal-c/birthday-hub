@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import type { Employee } from "@/lib/types";
+import CredentialsModal, { loadCredentials, type SendCredentials } from "./CredentialsModal";
 
 interface Props {
   employees: Employee[];
@@ -17,6 +18,8 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
   const [sendStatus, setSendStatus] = useState<"idle" | "sent" | "error">("idle");
   const [copied, setCopied] = useState(false);
   const [previewMode, setPreviewMode] = useState<"html" | "text">("html");
+  const [showCredsModal, setShowCredsModal] = useState(false);
+  const [pendingSend, setPendingSend] = useState(false);
 
   const selected = employees.find((e) => e.id === selectedId) || null;
 
@@ -74,14 +77,21 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
     if (selected) await fetchPreview(selected, val);
   }
 
-  async function handleSend() {
+  async function doSend(creds: SendCredentials) {
     if (!selected || !message) return;
     setSending(true);
+    setPendingSend(false);
     try {
       const res = await fetch("/api/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId: selected.id, message }),
+        body: JSON.stringify({
+          employeeId: selected.id,
+          message,
+          gmailUser: creds.gmailUser,
+          gmailAppPassword: creds.gmailAppPassword,
+          fromName: creds.fromName,
+        }),
       });
       if (res.ok) {
         setSendStatus("sent");
@@ -93,6 +103,22 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
       setSendStatus("error");
     }
     setSending(false);
+  }
+
+  function handleSend() {
+    if (!selected || !message) return;
+    const saved = loadCredentials();
+    if (saved) {
+      doSend(saved);
+    } else {
+      setPendingSend(true);
+      setShowCredsModal(true);
+    }
+  }
+
+  function handleCredsConfirm(creds: SendCredentials) {
+    setShowCredsModal(false);
+    if (pendingSend) doSend(creds);
   }
 
   async function copyHTML() {
@@ -112,6 +138,12 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
 
   return (
     <div className="space-y-5">
+      {showCredsModal && (
+        <CredentialsModal
+          onConfirm={handleCredsConfirm}
+          onCancel={() => { setShowCredsModal(false); setPendingSend(false); }}
+        />
+      )}
       {/* Employee selector */}
       <div>
         <label className="text-xs font-medium text-gray-500 block mb-1.5">Select employee</label>

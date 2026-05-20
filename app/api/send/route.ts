@@ -4,28 +4,35 @@ import { getEmployee, appendLog } from "@/lib/storage";
 import { buildEmailHTML } from "@/lib/email-template";
 import { randomUUID } from "crypto";
 
-function getTransporter() {
+function getTransporter(gmailUser: string, gmailAppPassword: string) {
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
+      user: gmailUser,
+      pass: gmailAppPassword,
     },
     tls: { rejectUnauthorized: false },
   });
 }
 
 export async function POST(req: Request) {
-  console.log("GMAIL_USER present:", !!process.env.GMAIL_USER);
-  console.log("GMAIL_APP_PASSWORD present:", !!process.env.GMAIL_APP_PASSWORD);
-  console.log("GMAIL_USER value:", process.env.GMAIL_USER);
-
-  const { employeeId, message } = await req.json();
+  const { employeeId, message, gmailUser, gmailAppPassword, fromName: bodyFromName } = await req.json();
 
   if (!employeeId || !message) {
     return NextResponse.json({ error: "employeeId and message are required" }, { status: 400 });
+  }
+
+  // Accept credentials from request body (manual sends) or env vars (cron fallback)
+  const resolvedGmailUser = gmailUser || process.env.GMAIL_USER;
+  const resolvedGmailPass = gmailAppPassword || process.env.GMAIL_APP_PASSWORD;
+
+  if (!resolvedGmailUser || !resolvedGmailPass) {
+    return NextResponse.json(
+      { error: "Gmail credentials are required. Please configure them before sending." },
+      { status: 400 }
+    );
   }
 
   const employee = await getEmployee(employeeId);
@@ -33,13 +40,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Employee not found" }, { status: 404 });
   }
 
-  const fromName = process.env.GMAIL_FROM_NAME || "The HR Team";
+  const fromName = bodyFromName || process.env.GMAIL_FROM_NAME || "The HR Team";
   const html = buildEmailHTML(employee.name, employee.department, message, fromName);
 
   try {
-    const transporter = getTransporter();
+    const transporter = getTransporter(resolvedGmailUser, resolvedGmailPass);
     await transporter.sendMail({
-      from: `"${fromName}" <${process.env.GMAIL_USER}>`,
+      from: `"${fromName}" <${resolvedGmailUser}>`,
       to: employee.email,
       subject: `🎂 Happy Birthday, ${employee.name}!`,
       html,
