@@ -30,10 +30,11 @@ Return ONLY a valid JSON object with no extra text or markdown, exactly like thi
 
 Rules:
 - message: exactly 1 sentence starting with "Dear ${name},"
+- message: use "we" / "our" throughout — this is a company-wide message, never "I" or "my"
 - mood: single capitalised word, energetic and positive, ideally hinting at their role or personality
 - fuel: 1-2 words max, fun and specific, ideally tied to their department or personality
 - Do NOT use hollow phrases like "on this special day"
-- Sound like it's from a real colleague who cares`,
+- Sound warm and genuine, from the whole team`,
         },
       ],
     });

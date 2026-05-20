@@ -22,6 +22,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
   const [pendingSend, setPendingSend] = useState(false);
   const [mood, setMood] = useState("Sunny");
   const [fuel, setFuel] = useState("Coffee");
+  const [heroImageUrl, setHeroImageUrl] = useState("");
 
   const selected = employees.find((e) => e.id === selectedId) || null;
 
@@ -38,6 +39,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
     setGenerating(true);
     setMessage("");
     setEmailHTML("");
+    setHeroImageUrl("");   // clear so the next preview gets a fresh image
     setSendStatus("idle");
     try {
       const res = await fetch("/api/generate", {
@@ -47,37 +49,59 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
       });
       const data = await res.json();
       const text = data.message || "";
-      if (data.mood) setMood(data.mood);
-      if (data.fuel) setFuel(data.fuel);
+      // Capture new mood/fuel locally before setting state so fetchPreview
+      // (called immediately below) doesn't see stale closure values.
+      const newMood = data.mood || "Sunny";
+      const newFuel = data.fuel || "Coffee";
+      setMood(newMood);
+      setFuel(newFuel);
       setMessage(text);
       if (text) {
         try {
-          await fetchPreview(target, text);
+          // Pass "" as imageUrl → preview route generates a fresh image and
+          // returns it; we then lock it in state for subsequent edits.
+          await fetchPreview(target, text, "", newMood, newFuel);
         } catch (previewErr) {
           console.error("fetchPreview failed:", previewErr);
         }
       }
     } catch (err) {
       console.error("generate failed:", err);
-      setMessage(`Dear ${target.name},\n\nWishing you a wonderful birthday! Your contributions to the ${target.department} team are truly valued. Hope today is as amazing as you are!`);
+      setMessage(`Dear ${target.name}, wishing you a wonderful birthday — your contributions to the ${target.department || "team"} are truly valued and we hope today is as amazing as you are!`);
     }
     setGenerating(false);
   }
 
-  async function fetchPreview(emp: Employee, msg: string) {
-    // Build preview on the client side using the template
+  // lockedImageUrl: pass the current heroImageUrl to reuse the same image,
+  // or "" to let the preview route generate a fresh one (used by generate()).
+  async function fetchPreview(
+    emp: Employee,
+    msg: string,
+    lockedImageUrl: string,
+    currentMood: string,
+    currentFuel: string
+  ) {
     const res = await fetch("/api/preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: emp.name, department: emp.department, message: msg }),
+      body: JSON.stringify({
+        name: emp.name,
+        department: emp.department,
+        message: msg,
+        imageUrl: lockedImageUrl,   // empty → server generates new URL
+        mood: currentMood,
+        fuel: currentFuel,
+      }),
     });
     const data = await res.json();
     setEmailHTML(data.html || "");
+    if (data.imageUrl) setHeroImageUrl(data.imageUrl);   // lock in the URL
   }
 
   async function handleMessageChange(val: string) {
     setMessage(val);
-    if (selected) await fetchPreview(selected, val);
+    // Pass the locked heroImageUrl so the image stays the same while editing.
+    if (selected) await fetchPreview(selected, val, heroImageUrl, mood, fuel);
   }
 
   async function doSend(creds: SendCredentials) {
@@ -96,6 +120,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
           fromName: creds.fromName,
           mood,
           fuel,
+          heroImageUrl,
         }),
       });
       if (res.ok) {

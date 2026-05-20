@@ -3,8 +3,10 @@
 const HERO_PROMPT =
   "colorful birthday balloons floating in soft peach and lavender pastel sky, dreamy editorial photography, minimal composition, soft bokeh, modern aesthetic, hyper detailed";
 
-function imageUrl(seed: number): string {
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(HERO_PROMPT)}?width=1200&height=720&nologo=true&seed=${seed}`;
+/** Call this to get a fresh hero image URL (random seed if none given). */
+export function generateHeroImageUrl(seed?: number): string {
+  const s = seed ?? Math.floor(Math.random() * 1000);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(HERO_PROMPT)}?width=1200&height=720&nologo=true&seed=${s}`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -41,19 +43,23 @@ export function buildEmailHTML(
   illustrationIndex?: number,
   mood = "Sunny",
   fuel = "Coffee",
-  logoUrl?: string
+  logoUrl?: string,
+  heroImageUrl?: string        // if provided, used as-is; otherwise a fresh one is generated
 ): string {
-  const seed =
-    illustrationIndex !== undefined && illustrationIndex >= 0
-      ? illustrationIndex * 137 + 42
-      : Math.floor(Math.random() * 1000);
+  const resolvedImageUrl =
+    heroImageUrl ||
+    generateHeroImageUrl(
+      illustrationIndex !== undefined && illustrationIndex >= 0
+        ? illustrationIndex * 137 + 42
+        : undefined
+    );
 
   const escaped = {
     name:    esc(name),
     msg:     esc(twoSentences(message)).replace(/\n/g, "<br>"),
     from:    esc(fromName),
     date:    esc(formatDate()),
-    imgUrl:  imageUrl(seed),
+    imgUrl:  resolvedImageUrl,
     mood:    esc(mood),
     fuel:    esc(fuel),
   };

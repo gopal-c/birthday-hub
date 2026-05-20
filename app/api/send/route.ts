@@ -18,7 +18,7 @@ function getTransporter(gmailUser: string, gmailAppPassword: string) {
 }
 
 export async function POST(req: Request) {
-  const { employeeId, message, gmailUser, gmailAppPassword, fromName: bodyFromName, mood, fuel } = await req.json();
+  const { employeeId, message, gmailUser, gmailAppPassword, fromName: bodyFromName, mood, fuel, heroImageUrl } = await req.json();
 
   if (!employeeId || !message) {
     return NextResponse.json({ error: "employeeId and message are required" }, { status: 400 });
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const logoUrl = `${origin}/rezolve.gif`;
   const html = buildEmailHTML(
     employee.name, employee.department, message, fromName,
-    undefined, mood, fuel, logoUrl
+    undefined, mood, fuel, logoUrl, heroImageUrl
   );
 
   try {
