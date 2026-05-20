@@ -1,12 +1,18 @@
-// ── Pollinations image prompt ─────────────────────────────────────────────────
-// Edit the prompt here to regenerate the hero image style.
-const HERO_PROMPT =
-  "colorful birthday balloons floating in soft peach and lavender pastel sky, dreamy editorial photography, minimal composition, soft bokeh, modern aesthetic, hyper detailed";
+// ── Pollinations image prompts ────────────────────────────────────────────────
+const HERO_PROMPTS = [
+  "birthday celebration flatlay, soft pastel pink and cream background, macarons roses gold confetti, aesthetic minimal, studio lighting, top down view",
+  "elegant birthday setup soft lavender and white background, candles flowers ribbon bokeh, dreamy pastel aesthetic, soft focus",
+  "birthday cake close up sage green and blush pink pastel background, flowers berries gold leaf, aesthetic food photography, soft natural light",
+  "festive celebration still life, soft peach and ivory background, champagne flowers confetti ribbons, luxury minimal aesthetic",
+  "birthday morning flatlay, soft blue and white pastel, coffee flowers small gifts wrapped in ribbon, cozy aesthetic editorial",
+  "colorful balloons bouquet against soft yellow cream gradient background, minimal modern aesthetic, studio shot airy light",
+];
 
-/** Call this to get a fresh hero image URL (random seed if none given). */
+/** Call this to get a fresh hero image URL (random prompt + random seed). */
 export function generateHeroImageUrl(seed?: number): string {
   const s = seed ?? Math.floor(Math.random() * 1000);
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(HERO_PROMPT)}?width=1200&height=720&nologo=true&seed=${s}`;
+  const prompt = HERO_PROMPTS[Math.floor(Math.random() * HERO_PROMPTS.length)];
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1200&height=720&nologo=true&seed=${s}`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
