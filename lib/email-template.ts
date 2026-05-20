@@ -12,7 +12,7 @@ const HERO_PROMPTS = [
 export function generateHeroImageUrl(seed?: number): string {
   const s = seed ?? Math.floor(Math.random() * 1000);
   const prompt = HERO_PROMPTS[Math.floor(Math.random() * HERO_PROMPTS.length)];
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1200&height=720&nologo=true&seed=${s}`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&nologo=true&seed=${s}`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -126,17 +126,18 @@ export function buildEmailHTML(
               </tr>
             </table>
 
-            <!-- ── Hero image (natural 5:3 ratio — no fixed height) ── -->
+            <!-- ── Hero image ── -->
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
               <tr>
                 <td style="border-radius:24px;overflow:hidden;line-height:0;
+                           height:360px;
                            box-shadow:0 20px 60px -20px rgba(58,26,42,0.25);
                            border:1px solid rgba(255,255,255,0.6);">
                   <img src="${escaped.imgUrl}"
                        width="584"
                        alt="Birthday celebration"
-                       style="display:block;width:100%;height:auto;
-                              border-radius:24px;border:0;" />
+                       style="display:block;width:100%;height:360px;
+                              object-fit:cover;border-radius:24px;border:0;" />
                 </td>
               </tr>
             </table>
