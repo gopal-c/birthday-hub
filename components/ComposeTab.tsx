@@ -23,6 +23,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
   const [mood, setMood] = useState("Sunny");
   const [fuel, setFuel] = useState("Coffee");
   const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [paletteId, setPaletteId] = useState("");
 
   const selected = employees.find((e) => e.id === selectedId) || null;
 
@@ -39,7 +40,8 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
     setGenerating(true);
     setMessage("");
     setEmailHTML("");
-    setHeroImageUrl("");   // clear so the next preview gets a fresh image
+    setHeroImageUrl("");   // clear so the next preview gets a fresh image + palette
+    setPaletteId("");
     setSendStatus("idle");
     try {
       const res = await fetch("/api/generate", {
@@ -58,9 +60,9 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
       setMessage(text);
       if (text) {
         try {
-          // Pass "" as imageUrl → preview route generates a fresh image and
-          // returns it; we then lock it in state for subsequent edits.
-          await fetchPreview(target, text, "", newMood, newFuel);
+          // Pass "" for imageUrl + paletteId → server generates fresh values
+          // and returns them; we then lock both in state for subsequent edits.
+          await fetchPreview(target, text, "", newMood, newFuel, "");
         } catch (previewErr) {
           console.error("fetchPreview failed:", previewErr);
         }
@@ -72,14 +74,15 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
     setGenerating(false);
   }
 
-  // lockedImageUrl: pass the current heroImageUrl to reuse the same image,
-  // or "" to let the preview route generate a fresh one (used by generate()).
+  // Pass empty strings for lockedImageUrl / lockedPaletteId to get fresh values
+  // (used by generate()). Pass the stored state values to lock them (edit mode).
   async function fetchPreview(
     emp: Employee,
     msg: string,
     lockedImageUrl: string,
     currentMood: string,
-    currentFuel: string
+    currentFuel: string,
+    lockedPaletteId: string
   ) {
     const res = await fetch("/api/preview", {
       method: "POST",
@@ -88,20 +91,21 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
         name: emp.name,
         department: emp.department,
         message: msg,
-        imageUrl: lockedImageUrl,   // empty → server generates new URL
+        imageUrl: lockedImageUrl,     // empty → server generates new URL
+        paletteId: lockedPaletteId,   // empty → server picks random palette
         mood: currentMood,
         fuel: currentFuel,
       }),
     });
     const data = await res.json();
     setEmailHTML(data.html || "");
-    if (data.imageUrl) setHeroImageUrl(data.imageUrl);   // lock in the URL
+    if (data.imageUrl)  setHeroImageUrl(data.imageUrl);
+    if (data.paletteId) setPaletteId(data.paletteId);
   }
 
   async function handleMessageChange(val: string) {
     setMessage(val);
-    // Pass the locked heroImageUrl so the image stays the same while editing.
-    if (selected) await fetchPreview(selected, val, heroImageUrl, mood, fuel);
+    if (selected) await fetchPreview(selected, val, heroImageUrl, mood, fuel, paletteId);
   }
 
   async function doSend(creds: SendCredentials) {
@@ -121,6 +125,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
           mood,
           fuel,
           heroImageUrl,
+          paletteId,
         }),
       });
       if (res.ok) {

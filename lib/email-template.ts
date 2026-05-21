@@ -1,3 +1,38 @@
+// ── Background palettes ───────────────────────────────────────────────────────
+// Six interchangeable gradient palettes. All keep #3a1a2a ink + #d96a3a accent
+// readable. Randomised per generate; locked for edits (same as heroImageUrl).
+
+interface Palette { id: string; label: string; bg: string; }
+
+export const SUNRISE_PALETTES: Palette[] = [
+  { id: "sunrise",
+    label: "Sunrise",
+    bg: "linear-gradient(180deg,#ffe4d6 0%,#ffd4c2 35%,#f9c4d4 70%,#e8c8ec 100%)" },
+  { id: "mint-marine",
+    label: "Mint Marine",
+    bg: "linear-gradient(180deg,#e6f5e6 0%,#c8ecdf 40%,#b8dde8 75%,#c8d4f0 100%)" },
+  { id: "honey-gold",
+    label: "Honey Gold",
+    bg: "linear-gradient(180deg,#fff4d6 0%,#fae0a0 35%,#e8b870 70%,#c08838 100%)" },
+  { id: "lilac-dawn",
+    label: "Lilac Dawn",
+    bg: "linear-gradient(180deg,#f5e8ff 0%,#e0d0f5 35%,#c8bce8 70%,#a8b0d8 100%)" },
+  { id: "citrus-sky",
+    label: "Citrus Sky",
+    bg: "linear-gradient(180deg,#fef8d6 0%,#fae8a8 30%,#d8e8c0 65%,#b8d4e8 100%)" },
+  { id: "ember",
+    label: "Ember",
+    bg: "linear-gradient(180deg,#ffe0d0 0%,#ff9c80 35%,#d8485c 70%,#6a1d34 100%)" },
+];
+
+/** Pick a palette by id, or a random one if id is missing/unknown. */
+export function resolvePalette(id?: string): Palette {
+  return (
+    (id && SUNRISE_PALETTES.find((p) => p.id === id)) ||
+    SUNRISE_PALETTES[Math.floor(Math.random() * SUNRISE_PALETTES.length)]
+  );
+}
+
 // ── Pollinations image prompts ────────────────────────────────────────────────
 const HERO_PROMPTS = [
   "birthday celebration flatlay, soft pastel pink and cream background, macarons roses gold confetti, aesthetic minimal, studio lighting, top down view",
@@ -50,7 +85,8 @@ export function buildEmailHTML(
   mood = "Sunny",
   fuel = "Coffee",
   logoUrl?: string,
-  heroImageUrl?: string        // if provided, used as-is; otherwise a fresh one is generated
+  heroImageUrl?: string,       // if provided, used as-is; otherwise a fresh one is generated
+  paletteId?: string           // if provided, looked up in SUNRISE_PALETTES; else random
 ): string {
   const resolvedImageUrl =
     heroImageUrl ||
@@ -59,6 +95,8 @@ export function buildEmailHTML(
         ? illustrationIndex * 137 + 42
         : undefined
     );
+
+  const palette = resolvePalette(paletteId);
 
   const escaped = {
     name:    esc(name),
@@ -102,8 +140,7 @@ export function buildEmailHTML(
 
       <!-- ── Gradient card ── -->
       <table width="640" cellpadding="0" cellspacing="0" role="presentation"
-        style="background:linear-gradient(180deg,#ffe4d6 0%,#ffd4c2 35%,#f9c4d4 70%,#e8c8ec 100%);
-               border-radius:32px;overflow:hidden;">
+        style="background:${palette.bg};border-radius:32px;overflow:hidden;">
         <tr>
           <td style="padding:32px 28px 28px;">
 

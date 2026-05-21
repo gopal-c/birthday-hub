@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buildEmailHTML, generateHeroImageUrl } from "@/lib/email-template";
+import { buildEmailHTML, generateHeroImageUrl, resolvePalette } from "@/lib/email-template";
 
 export async function POST(req: Request) {
   const {
@@ -7,15 +7,17 @@ export async function POST(req: Request) {
     department,
     message,
     imageUrl: inputImageUrl,
+    paletteId: inputPaletteId,
     mood,
     fuel,
   } = await req.json();
 
   const fromName = process.env.GMAIL_FROM_NAME || "The HR Team";
 
-  // Generate a fresh URL when none is supplied (i.e. on Regenerate).
-  // When the caller passes an existing URL the same image is reused.
+  // Generate fresh values when none supplied (i.e. on Regenerate).
+  // When the caller passes existing values they are reused (edit mode).
   const resolvedImageUrl: string = inputImageUrl || generateHeroImageUrl();
+  const resolvedPalette = resolvePalette(inputPaletteId || undefined);
 
   const html = buildEmailHTML(
     name || "",
@@ -26,8 +28,13 @@ export async function POST(req: Request) {
     mood || "Sunny",
     fuel || "Coffee",
     undefined,
-    resolvedImageUrl
+    resolvedImageUrl,
+    resolvedPalette.id
   );
 
-  return NextResponse.json({ html, imageUrl: resolvedImageUrl });
+  return NextResponse.json({
+    html,
+    imageUrl: resolvedImageUrl,
+    paletteId: resolvedPalette.id,
+  });
 }
