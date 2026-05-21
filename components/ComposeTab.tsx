@@ -25,8 +25,17 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
   const [fuel, setFuel] = useState("Coffee");
   const [heroImageUrl, setHeroImageUrl] = useState("");
   const [paletteId, setPaletteId] = useState("");
+  const [fromName, setFromName] = useState("The HR Team");
 
   const selected = employees.find((e) => e.id === selectedId) || null;
+
+  // Fetch settings once on mount so the initial fromName is correct
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s) => { if (s.fromName) setFromName(s.fromName); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (initialEmployee) {
@@ -45,6 +54,17 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
     setPaletteId("");
     setSendStatus("idle");
     try {
+      // Re-fetch settings so Regenerate always reflects the latest fromName
+      let freshFromName = fromName;
+      try {
+        const settingsRes = await fetch("/api/settings");
+        if (settingsRes.ok) {
+          const s = await settingsRes.json();
+          freshFromName = s.fromName || "The HR Team";
+          setFromName(freshFromName);
+        }
+      } catch { /* keep existing value */ }
+
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,7 +83,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
         try {
           // Pass "" for imageUrl + paletteId → server generates fresh values
           // and returns them; we then lock both in state for subsequent edits.
-          await fetchPreview(target, text, "", newMood, newFuel, "");
+          await fetchPreview(target, text, "", newMood, newFuel, "", freshFromName);
         } catch (previewErr) {
           console.error("fetchPreview failed:", previewErr);
         }
@@ -83,7 +103,8 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
     lockedImageUrl: string,
     currentMood: string,
     currentFuel: string,
-    lockedPaletteId: string
+    lockedPaletteId: string,
+    currentFromName?: string
   ) {
     const res = await fetch("/api/preview", {
       method: "POST",
@@ -92,6 +113,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
         name: emp.name,
         department: emp.department,
         message: msg,
+        fromName: currentFromName ?? fromName,
         imageUrl: lockedImageUrl,     // empty → server generates new URL
         paletteId: lockedPaletteId,   // empty → server picks random palette
         mood: currentMood,

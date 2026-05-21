@@ -279,7 +279,7 @@ export function buildEmailHTML(
                   <span style="font-size:11px;color:#3a1a2a;opacity:0.5;font-weight:500;
                                letter-spacing:0.02em;
                                font-family:'Inter Tight',system-ui,sans-serif;">
-                    Automated with Care ✦ Design Team
+                    With warmth &amp; celebration ✦ ${escaped.from}
                   </span>
                 </td>
               </tr>

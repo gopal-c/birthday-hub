@@ -6,13 +6,14 @@ export async function POST(req: Request) {
     name,
     department,
     message,
+    fromName: bodyFromName,
     imageUrl: inputImageUrl,
     paletteId: inputPaletteId,
     mood,
     fuel,
   } = await req.json();
 
-  const fromName = process.env.GMAIL_FROM_NAME || "The HR Team";
+  const fromName = bodyFromName || process.env.GMAIL_FROM_NAME || "The HR Team";
 
   // Generate fresh values when none supplied (i.e. on Regenerate).
   // When the caller passes existing values they are reused (edit mode).
