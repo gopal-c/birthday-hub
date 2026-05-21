@@ -256,7 +256,7 @@ export function buildEmailHTML(
                         <div style="font-size:11px;color:#3a1a2a;opacity:0.55;font-weight:500;
                                     letter-spacing:0.02em;
                                     font-family:'Inter Tight',system-ui,sans-serif;">
-                          With warmth,
+                          With warm regards,
                         </div>
                         <div style="font-size:17px;font-weight:700;color:#3a1a2a;
                                     letter-spacing:-0.015em;margin-top:4px;
