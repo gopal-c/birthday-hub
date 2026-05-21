@@ -24,17 +24,35 @@ function saveCredentials(creds: SendCredentials) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(creds));
 }
 
+export interface CcPerson { name: string; email: string; }
+
 interface Props {
-  onConfirm: (creds: SendCredentials) => void;
+  ccList: CcPerson[];
+  onConfirm: (creds: SendCredentials, cc: string[]) => void;
   onCancel: () => void;
 }
 
-export default function CredentialsModal({ onConfirm, onCancel }: Props) {
-  const [fromName, setFromName] = useState("The HR Team");
-  const [gmailUser, setGmailUser] = useState("");
-  const [gmailAppPassword, setGmailAppPassword] = useState("");
+export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props) {
+  // Pre-populate credentials from sessionStorage if already saved
+  const saved = loadCredentials();
+  const [fromName, setFromName] = useState(saved?.fromName || "The HR Team");
+  const [gmailUser, setGmailUser] = useState(saved?.gmailUser || "");
+  const [gmailAppPassword, setGmailAppPassword] = useState(saved?.gmailAppPassword || "");
   const [remember, setRemember] = useState(true);
   const [showPass, setShowPass] = useState(false);
+
+  // CC — start with everyone in ccList selected
+  const [ccEmails, setCcEmails] = useState<string[]>(() => ccList.map((p) => p.email));
+
+  const allSelected = ccEmails.length === ccList.length;
+
+  function toggleAll() {
+    setCcEmails(allSelected ? [] : ccList.map((p) => p.email));
+  }
+
+  function removeChip(email: string) {
+    setCcEmails((prev) => prev.filter((e) => e !== email));
+  }
 
   function handleConfirm() {
     if (!gmailUser.trim() || !gmailAppPassword.trim()) return;
@@ -44,22 +62,23 @@ export default function CredentialsModal({ onConfirm, onCancel }: Props) {
       gmailAppPassword: gmailAppPassword.trim(),
     };
     if (remember) saveCredentials(creds);
-    onConfirm(creds);
+    onConfirm(creds, ccEmails);
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-[#2D1B69] px-6 py-5">
-          <h2 className="text-white font-semibold text-lg">Gmail Credentials</h2>
+        <div className="bg-[#2D1B69] px-6 py-5 shrink-0">
+          <h2 className="text-white font-semibold text-lg">Send Birthday Email</h2>
           <p className="text-white/60 text-xs mt-0.5">
-            Used only to send this email — never stored on the server
+            Credentials are never stored on the server
           </p>
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-5 space-y-4">
+        {/* Scrollable body */}
+        <div className="px-6 py-5 space-y-4 overflow-y-auto">
+
           {/* From name */}
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1.5">
@@ -72,6 +91,58 @@ export default function CredentialsModal({ onConfirm, onCancel }: Props) {
               placeholder="The HR Team"
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#2D1B69]/50"
             />
+          </div>
+
+          {/* CC section */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium text-gray-600">
+                CC — Team Members
+                <span className="ml-1.5 font-normal text-gray-400">
+                  ({ccEmails.length}/{ccList.length} selected)
+                </span>
+              </label>
+              {ccList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  className="text-xs text-[#2D1B69] hover:underline underline-offset-2"
+                >
+                  {allSelected ? "Remove all" : "Select all"}
+                </button>
+              )}
+            </div>
+
+            <div className="min-h-[40px] max-h-32 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50 p-2">
+              {ccList.length === 0 ? (
+                <p className="text-xs text-gray-400 italic p-1">No other team members</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {ccList.map((person) => {
+                    const included = ccEmails.includes(person.email);
+                    return included ? (
+                      <span
+                        key={person.email}
+                        className="inline-flex items-center gap-1 bg-[#EEEDFE] text-[#2D1B69] px-2.5 py-1 rounded-full text-xs font-medium"
+                      >
+                        {person.name}
+                        <button
+                          type="button"
+                          onClick={() => removeChip(person.email)}
+                          className="leading-none opacity-60 hover:opacity-100 text-sm font-bold"
+                          aria-label={`Remove ${person.name}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ) : null;
+                  })}
+                  {ccEmails.length === 0 && (
+                    <p className="text-xs text-gray-400 italic p-0.5">No recipients — click "Select all" to restore</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Gmail address */}
@@ -128,12 +199,12 @@ export default function CredentialsModal({ onConfirm, onCancel }: Props) {
               onChange={(e) => setRemember(e.target.checked)}
               className="w-4 h-4 accent-[#2D1B69]"
             />
-            <span className="text-xs text-gray-600">Remember for this browser session</span>
+            <span className="text-xs text-gray-600">Remember credentials for this browser session</span>
           </label>
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-5 flex justify-end gap-2.5">
+        <div className="px-6 pb-5 flex justify-end gap-2.5 shrink-0 border-t border-gray-100 pt-4">
           <button
             onClick={onCancel}
             className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"

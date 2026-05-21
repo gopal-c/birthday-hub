@@ -55,9 +55,17 @@ Start with "Dear ${employee.name},". Personal, heartfelt, no clichés. No subjec
         ?? `Dear ${employee.name},\n\nWishing you a wonderful birthday today! Your contributions to ${employee.department} are truly appreciated.`;
 
       const html = buildEmailHTML(employee.name, employee.department, message, fromName);
+
+      // CC all other employees automatically
+      const ccEmails = employees
+        .filter((e) => e.id !== employee.id && e.email)
+        .map((e) => e.email)
+        .join(", ");
+
       await transporter.sendMail({
         from: `"${fromName}" <${process.env.GMAIL_USER}>`,
         to: employee.email,
+        ...(ccEmails ? { cc: ccEmails } : {}),
         subject: `🎂 Happy Birthday, ${employee.name}!`,
         html,
       });

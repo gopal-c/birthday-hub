@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import type { Employee } from "@/lib/types";
-import CredentialsModal, { loadCredentials, type SendCredentials } from "./CredentialsModal";
+import CredentialsModal, { type CcPerson, type SendCredentials } from "./CredentialsModal";
 
 interface Props {
   employees: Employee[];
@@ -108,7 +108,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
     if (selected) await fetchPreview(selected, val, heroImageUrl, mood, fuel, paletteId);
   }
 
-  async function doSend(creds: SendCredentials) {
+  async function doSend(creds: SendCredentials, cc: string[]) {
     if (!selected || !message) return;
     setSending(true);
     setPendingSend(false);
@@ -126,6 +126,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
           fuel,
           heroImageUrl,
           paletteId,
+          cc,
         }),
       });
       if (res.ok) {
@@ -142,18 +143,23 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
 
   function handleSend() {
     if (!selected || !message) return;
-    const saved = loadCredentials();
-    if (saved) {
-      doSend(saved);
-    } else {
-      setPendingSend(true);
-      setShowCredsModal(true);
-    }
+    // Always show the modal so the user can review / adjust CC recipients.
+    // Credentials will be pre-filled from sessionStorage if previously saved.
+    setPendingSend(true);
+    setShowCredsModal(true);
   }
 
-  function handleCredsConfirm(creds: SendCredentials) {
+  function handleCredsConfirm(creds: SendCredentials, cc: string[]) {
     setShowCredsModal(false);
-    if (pendingSend) doSend(creds);
+    if (pendingSend) doSend(creds, cc);
+  }
+
+  /** Everyone except the current recipient, for the CC pre-population. */
+  function buildCcList(): CcPerson[] {
+    if (!selected) return [];
+    return employees
+      .filter((e) => e.id !== selected.id)
+      .map((e) => ({ name: e.name, email: e.email }));
   }
 
   async function copyHTML() {
@@ -175,6 +181,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
     <div className="space-y-5">
       {showCredsModal && (
         <CredentialsModal
+          ccList={buildCcList()}
           onConfirm={handleCredsConfirm}
           onCancel={() => { setShowCredsModal(false); setPendingSend(false); }}
         />
