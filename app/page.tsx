@@ -162,7 +162,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="text-center py-6 text-xs text-gray-300">
-        Birthday Hub · Automated with ♥ and Claude AI
+        Birthday Hub · Automated with ♥ Design Team
       </footer>
     </div>
   );

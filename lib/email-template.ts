@@ -113,7 +113,7 @@ export function buildEmailHTML(
     ? `<span style="display:inline-block;background:#ffffff;border-radius:12px;
                     padding:8px 12px;
                     box-shadow:0 4px 16px -6px rgba(58,26,42,0.18),0 1px 0 rgba(255,255,255,0.7) inset;">
-         <img src="${esc(logoUrl)}" alt="Logo" height="22"
+         <img src="${esc(logoUrl)}" alt="Rezolve" height="22"
               style="display:block;height:22px;width:auto;border:0;" />
        </span>`
     : `<span style="display:inline-block;background:#ffffff;border-radius:12px;
@@ -121,7 +121,7 @@ export function buildEmailHTML(
                     box-shadow:0 4px 16px -6px rgba(58,26,42,0.18),0 1px 0 rgba(255,255,255,0.7) inset;
                     font-size:13px;font-weight:700;color:#3a1a2a;
                     font-family:'Inter Tight',system-ui,sans-serif;letter-spacing:-0.01em;">
-         🎈 Birthday Hub
+         🎈 Rezolve
        </span>`;
 
   return `<!DOCTYPE html>
@@ -171,9 +171,8 @@ export function buildEmailHTML(
                            box-shadow:0 20px 60px -20px rgba(58,26,42,0.25);
                            border:1px solid rgba(255,255,255,0.6);">
                   <img src="${escaped.imgUrl}"
-                       width="584"
-                       alt="Birthday celebration"
-                       style="display:block;width:100%;height:360px;
+                       alt="Birthday Celebration"
+                       style="display:block;width:100%;height:100%;
                               object-fit:cover;border-radius:24px;border:0;" />
                 </td>
               </tr>
@@ -280,7 +279,7 @@ export function buildEmailHTML(
                   <span style="font-size:11px;color:#3a1a2a;opacity:0.5;font-weight:500;
                                letter-spacing:0.02em;
                                font-family:'Inter Tight',system-ui,sans-serif;">
-                    Automated with care ✦
+                    Automated with Care ✦ Design Team
                   </span>
                 </td>
               </tr>
