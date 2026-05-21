@@ -5,9 +5,10 @@ import Dashboard from "@/components/Dashboard";
 import TeamTab from "@/components/TeamTab";
 import ComposeTab from "@/components/ComposeTab";
 import ScheduledTab from "@/components/ScheduledTab";
+import SettingsTab from "@/components/SettingsTab";
 import ImportModal from "@/components/ImportModal";
 
-type Tab = "dashboard" | "team" | "compose" | "scheduled";
+type Tab = "dashboard" | "team" | "compose" | "scheduled" | "settings";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("dashboard");
@@ -53,6 +54,7 @@ export default function Home() {
                 heroImageUrl: job.heroImageUrl,
                 paletteId: job.paletteId,
                 cc: job.cc,
+                ccBehavior: job.ccBehavior || "cc",
                 scheduledJobId: job.id,
               }),
             });
@@ -133,6 +135,7 @@ export default function Home() {
     { key: "team",      label: "Team",      icon: "👥" },
     { key: "compose",   label: "Compose",   icon: "✉️" },
     { key: "scheduled", label: "Scheduled", icon: "⏰" },
+    { key: "settings",  label: "Settings",  icon: "⚙️" },
   ];
 
   const todayCount = employees.filter((e) => {
@@ -219,6 +222,9 @@ export default function Home() {
             )}
             {tab === "scheduled" && (
               <ScheduledTab refreshKey={scheduledRefreshKey} />
+            )}
+            {tab === "settings" && (
+              <SettingsTab />
             )}
           </>
         )}

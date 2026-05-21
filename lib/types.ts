@@ -39,6 +39,7 @@ export interface ScheduledSend {
   gmailAppPassword: string;
   fromName: string;
   cc: string[];
+  ccBehavior?: "cc" | "bcc" | "none";
   mood: string;
   fuel: string;
   heroImageUrl?: string;
@@ -47,4 +48,11 @@ export interface ScheduledSend {
   status: "pending" | "sent" | "cancelled";
   createdAt: string;
   sentAt?: string;
+}
+
+export interface AppSettings {
+  fromName: string;
+  replyTo: string;
+  autoSendEnabled: boolean;
+  ccBehavior: "cc" | "bcc" | "none";
 }

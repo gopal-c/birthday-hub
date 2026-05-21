@@ -1,5 +1,5 @@
 import { sql } from "@vercel/postgres";
-import type { Employee, SendLog, ScheduledSend } from "./types";
+import type { Employee, SendLog, ScheduledSend, AppSettings } from "./types";
 
 // ── In-memory fallback for local dev without POSTGRES_URL ────────────────────
 const mem: { employees: Employee[]; logs: SendLog[]; scheduled: ScheduledSend[] } = {
@@ -48,6 +48,7 @@ async function ensureSchema(): Promise<void> {
       gmail_app_password TEXT,
       from_name          TEXT,
       cc                 TEXT,
+      cc_behavior        TEXT DEFAULT 'cc',
       mood               TEXT,
       fuel               TEXT,
       hero_image_url     TEXT,
@@ -56,6 +57,14 @@ async function ensureSchema(): Promise<void> {
       status             TEXT NOT NULL DEFAULT 'pending',
       created_at         TEXT,
       sent_at            TEXT
+    )
+  `;
+  // Migration: add cc_behavior to existing scheduled_sends tables
+  await sql`ALTER TABLE scheduled_sends ADD COLUMN IF NOT EXISTS cc_behavior TEXT DEFAULT 'cc'`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS kv_store (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     )
   `;
   schemaReady = true;
@@ -163,6 +172,43 @@ export async function appendLog(log: SendLog): Promise<void> {
   `;
 }
 
+export async function clearLogs(): Promise<void> {
+  if (!hasDb()) { mem.logs = []; return; }
+  await ensureSchema();
+  await sql`DELETE FROM send_logs`;
+}
+
+// ── App Settings ─────────────────────────────────────────────────────────────
+
+const DEFAULT_SETTINGS: AppSettings = {
+  fromName: process.env.GMAIL_FROM_NAME || "The HR Team",
+  replyTo: "",
+  autoSendEnabled: true,
+  ccBehavior: "cc",
+};
+
+export async function getSettings(): Promise<AppSettings> {
+  if (!hasDb()) return { ...DEFAULT_SETTINGS };
+  await ensureSchema();
+  const { rows } = await sql`SELECT value FROM kv_store WHERE key = 'bh:settings'`;
+  if (!rows.length) return { ...DEFAULT_SETTINGS };
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(rows[0].value as string) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+export async function saveSettings(settings: AppSettings): Promise<void> {
+  const value = JSON.stringify(settings);
+  if (!hasDb()) return;
+  await ensureSchema();
+  await sql`
+    INSERT INTO kv_store (key, value) VALUES ('bh:settings', ${value})
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+  `;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 export function todayMMDD(): string {
@@ -194,6 +240,7 @@ function rowToScheduledSend(row: Record<string, unknown>): ScheduledSend {
     gmailAppPassword: (row.gmail_app_password as string) || "",
     fromName:         (row.from_name as string) || "The HR Team",
     cc,
+    ccBehavior:       ((row.cc_behavior as string) || "cc") as ScheduledSend["ccBehavior"],
     mood:             (row.mood as string) || "Sunny",
     fuel:             (row.fuel as string) || "Coffee",
     heroImageUrl:     (row.hero_image_url as string) || undefined,
@@ -207,18 +254,19 @@ function rowToScheduledSend(row: Record<string, unknown>): ScheduledSend {
 
 export async function createScheduledSend(job: ScheduledSend): Promise<void> {
   const ccJson = JSON.stringify(job.cc || []);
+  const ccBehavior = job.ccBehavior || "cc";
   if (!hasDb()) { mem.scheduled.push(job); return; }
   await ensureSchema();
   await sql`
     INSERT INTO scheduled_sends
       (id, employee_id, employee_name, employee_email, message,
-       gmail_user, gmail_app_password, from_name, cc,
+       gmail_user, gmail_app_password, from_name, cc, cc_behavior,
        mood, fuel, hero_image_url, palette_id,
        scheduled_at, status, created_at)
     VALUES
       (${job.id}, ${job.employeeId}, ${job.employeeName}, ${job.employeeEmail},
        ${job.message}, ${job.gmailUser}, ${job.gmailAppPassword}, ${job.fromName},
-       ${ccJson}, ${job.mood}, ${job.fuel},
+       ${ccJson}, ${ccBehavior}, ${job.mood}, ${job.fuel},
        ${job.heroImageUrl || null}, ${job.paletteId || null},
        ${job.scheduledAt}, 'pending', ${job.createdAt})
   `;

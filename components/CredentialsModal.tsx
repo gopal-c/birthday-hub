@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export interface SendCredentials {
   fromName: string;
@@ -26,20 +26,37 @@ function saveCredentials(creds: SendCredentials) {
 
 export interface CcPerson { name: string; email: string; }
 
+export type CcBehavior = "cc" | "bcc" | "none";
+
 interface Props {
   ccList: CcPerson[];
-  onConfirm: (creds: SendCredentials, cc: string[], scheduledAt: string | null) => void;
+  onConfirm: (creds: SendCredentials, cc: string[], scheduledAt: string | null, ccBehavior: CcBehavior) => void;
   onCancel: () => void;
 }
 
 export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props) {
   // Pre-populate credentials from sessionStorage if already saved
   const saved = loadCredentials();
-  const [fromName, setFromName] = useState(saved?.fromName || "The HR Team");
+  const [fromName, setFromName] = useState(saved?.fromName || "");
   const [gmailUser, setGmailUser] = useState(saved?.gmailUser || "");
   const [gmailAppPassword, setGmailAppPassword] = useState(saved?.gmailAppPassword || "");
   const [remember, setRemember] = useState(true);
   const [showPass, setShowPass] = useState(false);
+  const [ccBehavior, setCcBehavior] = useState<CcBehavior>("cc");
+
+  // Fetch settings to pre-fill From Name and CC behavior defaults
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s) => {
+        if (!fromName) setFromName(s.fromName || "The HR Team");
+        setCcBehavior(s.ccBehavior || "cc");
+      })
+      .catch(() => {
+        if (!fromName) setFromName("The HR Team");
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // CC — start with everyone in ccList selected
   const [ccEmails, setCcEmails] = useState<string[]>(() => ccList.map((p) => p.email));
@@ -80,7 +97,7 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
       }
     }
 
-    onConfirm(creds, ccEmails, scheduledAt);
+    onConfirm(creds, ccEmails, scheduledAt, ccBehavior);
   }
 
   return (
@@ -161,6 +178,38 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
                 </div>
               )}
             </div>
+          </div>
+
+          {/* CC behavior */}
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1.5">
+              CC behavior
+            </label>
+            <div className="flex gap-2">
+              {(["cc", "bcc", "none"] as CcBehavior[]).map((opt) => (
+                <label
+                  key={opt}
+                  className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                    ccBehavior === opt
+                      ? "bg-[#EEEDFE] text-[#2D1B69] border-[#2D1B69]/30"
+                      : "text-gray-500 border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    className="sr-only"
+                    name="ccBehavior"
+                    value={opt}
+                    checked={ccBehavior === opt}
+                    onChange={() => setCcBehavior(opt)}
+                  />
+                  {opt === "cc" ? "CC" : opt === "bcc" ? "BCC" : "None"}
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5">
+              Override default from Settings. &gt;50 recipients are always BCCd.
+            </p>
           </div>
 
           {/* Schedule toggle */}

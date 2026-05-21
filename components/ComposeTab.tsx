@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import type { Employee } from "@/lib/types";
-import CredentialsModal, { type CcPerson, type SendCredentials } from "./CredentialsModal";
+import CredentialsModal, { type CcPerson, type SendCredentials, type CcBehavior } from "./CredentialsModal";
 
 interface Props {
   employees: Employee[];
@@ -109,7 +109,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
     if (selected) await fetchPreview(selected, val, heroImageUrl, mood, fuel, paletteId);
   }
 
-  async function doSend(creds: SendCredentials, cc: string[], scheduledAt: string | null) {
+  async function doSend(creds: SendCredentials, cc: string[], scheduledAt: string | null, ccBehavior: CcBehavior) {
     if (!selected || !message) return;
     setSending(true);
     setPendingSend(false);
@@ -127,6 +127,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
       heroImageUrl,
       paletteId,
       cc,
+      ccBehavior,
     };
 
     try {
@@ -171,9 +172,9 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
     setShowCredsModal(true);
   }
 
-  function handleCredsConfirm(creds: SendCredentials, cc: string[], scheduledAt: string | null) {
+  function handleCredsConfirm(creds: SendCredentials, cc: string[], scheduledAt: string | null, ccBehavior: CcBehavior) {
     setShowCredsModal(false);
-    if (pendingSend) doSend(creds, cc, scheduledAt);
+    if (pendingSend) doSend(creds, cc, scheduledAt, ccBehavior);
   }
 
   /** Everyone except the current recipient, for the CC pre-population. */

@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 import Groq from "groq-sdk";
 import {
   getEmployees, getLogs, appendLog, todayMMDD, alreadySentThisYear,
-  getDueScheduledSends, updateScheduledSendStatus,
+  getDueScheduledSends, updateScheduledSendStatus, getSettings,
 } from "@/lib/storage";
 import { buildEmailHTML, generateHeroImageUrl, resolvePalette } from "@/lib/email-template";
 import { randomUUID } from "crypto";
@@ -22,7 +22,14 @@ export async function GET(req: NextRequest) {
 
   const results = { birthdaySent: 0, birthdayFailed: 0, scheduledSent: 0, scheduledFailed: 0 };
 
+  // Load settings once for this cron tick
+  const settings = await getSettings();
+
   // ── 1. Birthday emails ──────────────────────────────────────────────────────
+  if (!settings.autoSendEnabled) {
+    results.birthdaySent = 0;
+    results.birthdayFailed = 0;
+  } else
   try {
     const today = todayMMDD();
     const [employees, logs] = await Promise.all([getEmployees(), getLogs()]);
@@ -33,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     if (birthdayPeople.length > 0) {
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const fromName = process.env.GMAIL_FROM_NAME || "The HR Team";
+      const fromName = settings.fromName;
       const logoUrl = process.env.NEXT_PUBLIC_APP_URL
         ? `${process.env.NEXT_PUBLIC_APP_URL}/rezolve.gif`
         : undefined;
@@ -84,16 +91,20 @@ Return ONLY a valid JSON object:
             undefined, mood, fuel, logoUrl, heroImageUrl, palette.id
           );
 
-          // CC all other employees
-          const ccEmails = employees
+          // CC/BCC other employees according to settings
+          const otherEmails = employees
             .filter((e) => e.id !== employee.id && e.email)
-            .map((e) => e.email)
-            .join(", ");
+            .map((e) => e.email);
+          const behavior = otherEmails.length > 50 ? "bcc" : settings.ccBehavior;
+          const recipientField = otherEmails.length > 0 && behavior !== "none"
+            ? { [behavior]: otherEmails.join(", ") }
+            : {};
 
           await transporter.sendMail({
             from:    `"${fromName}" <${process.env.GMAIL_USER}>`,
             to:      employee.email,
-            ...(ccEmails ? { cc: ccEmails } : {}),
+            ...recipientField,
+            ...(settings.replyTo ? { replyTo: settings.replyTo } : {}),
             subject: `🎂 Happy Birthday, ${employee.name}!`,
             html,
           });
@@ -147,10 +158,16 @@ Return ONLY a valid JSON object:
           tls: { rejectUnauthorized: false },
         });
 
+        const jobCcList = job.cc || [];
+        const jobBehavior = jobCcList.length > 50 ? "bcc" : (job.ccBehavior || "cc");
+        const jobRecipientField = jobCcList.length > 0 && jobBehavior !== "none"
+          ? { [jobBehavior]: jobCcList.join(", ") }
+          : {};
+
         await transporter.sendMail({
           from:    `"${job.fromName}" <${job.gmailUser}>`,
           to:      job.employeeEmail,
-          ...(job.cc?.length ? { cc: job.cc.join(", ") } : {}),
+          ...jobRecipientField,
           subject: `🎂 Happy Birthday, ${job.employeeName}!`,
           html,
         });

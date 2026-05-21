@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
-import { getLogs } from "@/lib/storage";
+import { getLogs, clearLogs } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const logs = await getLogs();
   return NextResponse.json(logs);
+}
+
+export async function DELETE() {
+  await clearLogs();
+  return NextResponse.json({ ok: true });
 }
