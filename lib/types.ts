@@ -28,3 +28,23 @@ export interface SendEmailRequest {
   employeeId: string;
   message: string;
 }
+
+export interface ScheduledSend {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeEmail: string;
+  message: string;
+  gmailUser: string;
+  gmailAppPassword: string;
+  fromName: string;
+  cc: string[];
+  mood: string;
+  fuel: string;
+  heroImageUrl?: string;
+  paletteId?: string;
+  scheduledAt: string;   // ISO UTC datetime
+  status: "pending" | "sent" | "cancelled";
+  createdAt: string;
+  sentAt?: string;
+}

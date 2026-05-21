@@ -1,8 +1,10 @@
 import { sql } from "@vercel/postgres";
-import type { Employee, SendLog } from "./types";
+import type { Employee, SendLog, ScheduledSend } from "./types";
 
 // ── In-memory fallback for local dev without POSTGRES_URL ────────────────────
-const mem: { employees: Employee[]; logs: SendLog[] } = { employees: [], logs: [] };
+const mem: { employees: Employee[]; logs: SendLog[]; scheduled: ScheduledSend[] } = {
+  employees: [], logs: [], scheduled: [],
+};
 
 function hasDb(): boolean {
   return !!process.env.POSTGRES_URL;
@@ -33,6 +35,27 @@ async function ensureSchema(): Promise<void> {
       year          INTEGER,
       status        TEXT,
       error         TEXT
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS scheduled_sends (
+      id                 TEXT PRIMARY KEY,
+      employee_id        TEXT NOT NULL,
+      employee_name      TEXT NOT NULL,
+      employee_email     TEXT NOT NULL,
+      message            TEXT,
+      gmail_user         TEXT,
+      gmail_app_password TEXT,
+      from_name          TEXT,
+      cc                 TEXT,
+      mood               TEXT,
+      fuel               TEXT,
+      hero_image_url     TEXT,
+      palette_id         TEXT,
+      scheduled_at       TEXT NOT NULL,
+      status             TEXT NOT NULL DEFAULT 'pending',
+      created_at         TEXT,
+      sent_at            TEXT
     )
   `;
   schemaReady = true;
@@ -154,4 +177,96 @@ export function alreadySentThisYear(logs: SendLog[], employeeId: string): boolea
   return logs.some(
     (l) => l.employeeId === employeeId && l.year === year && l.status === "sent"
   );
+}
+
+// ── Scheduled Sends ──────────────────────────────────────────────────────────
+
+function rowToScheduledSend(row: Record<string, unknown>): ScheduledSend {
+  let cc: string[] = [];
+  try { cc = JSON.parse((row.cc as string) || "[]"); } catch { cc = []; }
+  return {
+    id:               row.id as string,
+    employeeId:       row.employee_id as string,
+    employeeName:     row.employee_name as string,
+    employeeEmail:    row.employee_email as string,
+    message:          (row.message as string) || "",
+    gmailUser:        (row.gmail_user as string) || "",
+    gmailAppPassword: (row.gmail_app_password as string) || "",
+    fromName:         (row.from_name as string) || "The HR Team",
+    cc,
+    mood:             (row.mood as string) || "Sunny",
+    fuel:             (row.fuel as string) || "Coffee",
+    heroImageUrl:     (row.hero_image_url as string) || undefined,
+    paletteId:        (row.palette_id as string) || undefined,
+    scheduledAt:      row.scheduled_at as string,
+    status:           row.status as ScheduledSend["status"],
+    createdAt:        (row.created_at as string) || new Date().toISOString(),
+    sentAt:           (row.sent_at as string) || undefined,
+  };
+}
+
+export async function createScheduledSend(job: ScheduledSend): Promise<void> {
+  const ccJson = JSON.stringify(job.cc || []);
+  if (!hasDb()) { mem.scheduled.push(job); return; }
+  await ensureSchema();
+  await sql`
+    INSERT INTO scheduled_sends
+      (id, employee_id, employee_name, employee_email, message,
+       gmail_user, gmail_app_password, from_name, cc,
+       mood, fuel, hero_image_url, palette_id,
+       scheduled_at, status, created_at)
+    VALUES
+      (${job.id}, ${job.employeeId}, ${job.employeeName}, ${job.employeeEmail},
+       ${job.message}, ${job.gmailUser}, ${job.gmailAppPassword}, ${job.fromName},
+       ${ccJson}, ${job.mood}, ${job.fuel},
+       ${job.heroImageUrl || null}, ${job.paletteId || null},
+       ${job.scheduledAt}, 'pending', ${job.createdAt})
+  `;
+}
+
+export async function getScheduledSends(status = "pending"): Promise<ScheduledSend[]> {
+  if (!hasDb()) return mem.scheduled.filter((s) => s.status === status);
+  await ensureSchema();
+  const { rows } = await sql`
+    SELECT * FROM scheduled_sends WHERE status = ${status} ORDER BY scheduled_at ASC
+  `;
+  return rows.map(rowToScheduledSend);
+}
+
+export async function getScheduledSend(id: string): Promise<ScheduledSend | null> {
+  if (!hasDb()) return mem.scheduled.find((s) => s.id === id) ?? null;
+  await ensureSchema();
+  const { rows } = await sql`SELECT * FROM scheduled_sends WHERE id = ${id}`;
+  return rows.length ? rowToScheduledSend(rows[0]) : null;
+}
+
+export async function updateScheduledSendStatus(
+  id: string,
+  status: ScheduledSend["status"],
+  sentAt?: string
+): Promise<void> {
+  if (!hasDb()) {
+    const j = mem.scheduled.find((s) => s.id === id);
+    if (j) { j.status = status; if (sentAt) j.sentAt = sentAt; }
+    return;
+  }
+  await ensureSchema();
+  await sql`
+    UPDATE scheduled_sends SET status = ${status}, sent_at = ${sentAt || null} WHERE id = ${id}
+  `;
+}
+
+/** Returns all pending jobs whose scheduledAt is at or before now. */
+export async function getDueScheduledSends(): Promise<ScheduledSend[]> {
+  const now = new Date().toISOString();
+  if (!hasDb()) {
+    return mem.scheduled.filter((s) => s.status === "pending" && s.scheduledAt <= now);
+  }
+  await ensureSchema();
+  const { rows } = await sql`
+    SELECT * FROM scheduled_sends
+    WHERE status = 'pending' AND scheduled_at <= ${now}
+    ORDER BY scheduled_at ASC
+  `;
+  return rows.map(rowToScheduledSend);
 }

@@ -28,7 +28,7 @@ export interface CcPerson { name: string; email: string; }
 
 interface Props {
   ccList: CcPerson[];
-  onConfirm: (creds: SendCredentials, cc: string[]) => void;
+  onConfirm: (creds: SendCredentials, cc: string[], scheduledAt: string | null) => void;
   onCancel: () => void;
 }
 
@@ -43,6 +43,15 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
 
   // CC — start with everyone in ccList selected
   const [ccEmails, setCcEmails] = useState<string[]>(() => ccList.map((p) => p.email));
+
+  // Schedule state
+  const [scheduled, setScheduled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];         // "YYYY-MM-DD"
+  });
+  const [scheduleTime, setScheduleTime] = useState("09:00");
 
   const allSelected = ccEmails.length === ccList.length;
 
@@ -62,7 +71,16 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
       gmailAppPassword: gmailAppPassword.trim(),
     };
     if (remember) saveCredentials(creds);
-    onConfirm(creds, ccEmails);
+
+    let scheduledAt: string | null = null;
+    if (scheduled) {
+      const dt = new Date(`${scheduleDate}T${scheduleTime}:00`);
+      if (!isNaN(dt.getTime()) && dt > new Date()) {
+        scheduledAt = dt.toISOString();
+      }
+    }
+
+    onConfirm(creds, ccEmails, scheduledAt);
   }
 
   return (
@@ -145,6 +163,47 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
             </div>
           </div>
 
+          {/* Schedule toggle */}
+          <div>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <div
+                onClick={() => setScheduled((v) => !v)}
+                className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
+                  scheduled ? "bg-[#2D1B69]" : "bg-gray-200"
+                }`}
+              >
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                  scheduled ? "translate-x-4" : "translate-x-0.5"
+                }`} />
+              </div>
+              <span className="text-xs font-medium text-gray-700">Schedule Send</span>
+            </label>
+
+            {scheduled && (
+              <div className="mt-2.5 flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    min={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50"
+                  />
+                </div>
+                <div className="w-28">
+                  <label className="text-xs text-gray-500 block mb-1">Time</label>
+                  <input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Gmail address */}
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1.5">
@@ -216,7 +275,7 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
             disabled={!gmailUser.trim() || !gmailAppPassword.trim()}
             className="px-5 py-2 text-sm text-white bg-[#2D1B69] rounded-lg hover:bg-[#3d2580] disabled:opacity-40 font-medium"
           >
-            Send Email
+            {scheduled ? "⏰ Schedule" : "✉ Send Now"}
           </button>
         </div>
       </div>

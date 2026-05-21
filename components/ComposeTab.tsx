@@ -7,15 +7,16 @@ interface Props {
   employees: Employee[];
   initialEmployee?: Employee | null;
   onSent: () => void;
+  onScheduled?: () => void;
 }
 
-export default function ComposeTab({ employees, initialEmployee, onSent }: Props) {
+export default function ComposeTab({ employees, initialEmployee, onSent, onScheduled }: Props) {
   const [selectedId, setSelectedId] = useState(initialEmployee?.id || "");
   const [message, setMessage] = useState("");
   const [emailHTML, setEmailHTML] = useState("");
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
-  const [sendStatus, setSendStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [sendStatus, setSendStatus] = useState<"idle" | "sent" | "scheduled" | "error">("idle");
   const [copied, setCopied] = useState(false);
   const [previewMode, setPreviewMode] = useState<"html" | "text">("html");
   const [showCredsModal, setShowCredsModal] = useState(false);
@@ -108,32 +109,53 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
     if (selected) await fetchPreview(selected, val, heroImageUrl, mood, fuel, paletteId);
   }
 
-  async function doSend(creds: SendCredentials, cc: string[]) {
+  async function doSend(creds: SendCredentials, cc: string[], scheduledAt: string | null) {
     if (!selected || !message) return;
     setSending(true);
     setPendingSend(false);
+
+    const payload = {
+      employeeId:       selected.id,
+      employeeName:     selected.name,
+      employeeEmail:    selected.email,
+      message,
+      gmailUser:        creds.gmailUser,
+      gmailAppPassword: creds.gmailAppPassword,
+      fromName:         creds.fromName,
+      mood,
+      fuel,
+      heroImageUrl,
+      paletteId,
+      cc,
+    };
+
     try {
-      const res = await fetch("/api/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId: selected.id,
-          message,
-          gmailUser: creds.gmailUser,
-          gmailAppPassword: creds.gmailAppPassword,
-          fromName: creds.fromName,
-          mood,
-          fuel,
-          heroImageUrl,
-          paletteId,
-          cc,
-        }),
-      });
-      if (res.ok) {
-        setSendStatus("sent");
-        onSent();
+      if (scheduledAt) {
+        // ── Schedule for later ──────────────────────────────────────────────
+        const res = await fetch("/api/schedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, scheduledAt }),
+        });
+        if (res.ok) {
+          setSendStatus("scheduled");
+          onScheduled?.();
+        } else {
+          setSendStatus("error");
+        }
       } else {
-        setSendStatus("error");
+        // ── Send immediately ────────────────────────────────────────────────
+        const res = await fetch("/api/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          setSendStatus("sent");
+          onSent();
+        } else {
+          setSendStatus("error");
+        }
       }
     } catch {
       setSendStatus("error");
@@ -149,9 +171,9 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
     setShowCredsModal(true);
   }
 
-  function handleCredsConfirm(creds: SendCredentials, cc: string[]) {
+  function handleCredsConfirm(creds: SendCredentials, cc: string[], scheduledAt: string | null) {
     setShowCredsModal(false);
-    if (pendingSend) doSend(creds, cc);
+    if (pendingSend) doSend(creds, cc, scheduledAt);
   }
 
   /** Everyone except the current recipient, for the CC pre-population. */
@@ -311,13 +333,16 @@ export default function ComposeTab({ employees, initialEmployee, onSent }: Props
               {sendStatus === "sent" && (
                 <span className="text-sm text-teal-600 font-medium">✅ Email sent to {selected.email}!</span>
               )}
+              {sendStatus === "scheduled" && (
+                <span className="text-sm text-[#2D1B69] font-medium">⏰ Email scheduled!</span>
+              )}
               {sendStatus === "error" && (
                 <span className="text-sm text-red-500">⚠️ Send failed — check your Gmail config</span>
               )}
 
               <button
                 onClick={handleSend}
-                disabled={sending || !message || sendStatus === "sent"}
+                disabled={sending || !message || sendStatus === "sent" || sendStatus === "scheduled"}
                 className="flex items-center gap-2 px-5 py-2.5 text-sm text-white bg-[#2D1B69] rounded-lg hover:bg-[#3d2580] disabled:opacity-40 font-medium"
               >
                 {sending ? <><span className="spin">⟳</span> Sending…</> : "✉ Send Birthday Email"}

@@ -4,9 +4,10 @@ import type { Employee, SendLog } from "@/lib/types";
 import Dashboard from "@/components/Dashboard";
 import TeamTab from "@/components/TeamTab";
 import ComposeTab from "@/components/ComposeTab";
+import ScheduledTab from "@/components/ScheduledTab";
 import ImportModal from "@/components/ImportModal";
 
-type Tab = "dashboard" | "team" | "compose";
+type Tab = "dashboard" | "team" | "compose" | "scheduled";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("dashboard");
@@ -15,6 +16,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [composeTarget, setComposeTarget] = useState<Employee | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
 
   const fetchData = useCallback(async () => {
     const [empRes, logRes] = await Promise.all([
@@ -65,6 +67,7 @@ export default function Home() {
     { key: "dashboard", label: "Dashboard", icon: "🏠" },
     { key: "team",      label: "Team",      icon: "👥" },
     { key: "compose",   label: "Compose",   icon: "✉️" },
+    { key: "scheduled", label: "Scheduled", icon: "⏰" },
   ];
 
   const todayCount = employees.filter((e) => {
@@ -143,7 +146,14 @@ export default function Home() {
                 employees={employees}
                 initialEmployee={composeTarget}
                 onSent={fetchData}
+                onScheduled={() => {
+                  setScheduledRefreshKey((k) => k + 1);
+                  setTab("scheduled");
+                }}
               />
+            )}
+            {tab === "scheduled" && (
+              <ScheduledTab refreshKey={scheduledRefreshKey} />
             )}
           </>
         )}

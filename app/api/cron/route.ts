@@ -1,107 +1,177 @@
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
-
-// Cron feature temporarily disabled.
-export async function GET(_req: NextRequest) {
-  return NextResponse.json({ disabled: true, message: "Cron feature is disabled" }, { status: 503 });
-}
-
-/* Original implementation — re-enable by restoring this block and the schedule in vercel.json.
+import { NextResponse, NextRequest } from "next/server";
 import nodemailer from "nodemailer";
 import Groq from "groq-sdk";
-import { getEmployees, getLogs, appendLog, todayMMDD, alreadySentThisYear } from "@/lib/storage";
-import { buildEmailHTML } from "@/lib/email-template";
+import {
+  getEmployees, getLogs, appendLog, todayMMDD, alreadySentThisYear,
+  getDueScheduledSends, updateScheduledSendStatus,
+} from "@/lib/storage";
+import { buildEmailHTML, generateHeroImageUrl, resolvePalette } from "@/lib/email-template";
 import { randomUUID } from "crypto";
 
+// Runs every 15 minutes via Vercel Cron.
+// Does two things each tick:
+//   1. Auto-send birthday emails for today (once per person per year).
+//   2. Fire any scheduled sends whose scheduledAt is now in the past.
+
 export async function GET(req: NextRequest) {
-  // Protect with a shared secret so only Vercel can trigger this
+  // Protect with a shared secret so only Vercel Cron can trigger this
   const secret = req.headers.get("authorization")?.replace("Bearer ", "");
   if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const today = todayMMDD();
-  const [employees, logs] = await Promise.all([getEmployees(), getLogs()]);
+  const results = { birthdaySent: 0, birthdayFailed: 0, scheduledSent: 0, scheduledFailed: 0 };
 
-  const birthdayPeople = employees.filter(
-    (e) => e.birthday === today && !alreadySentThisYear(logs, e.id)
-  );
+  // ── 1. Birthday emails ──────────────────────────────────────────────────────
+  try {
+    const today = todayMMDD();
+    const [employees, logs] = await Promise.all([getEmployees(), getLogs()]);
 
-  if (birthdayPeople.length === 0) {
-    return NextResponse.json({ sent: 0, message: "No birthdays today" });
-  }
+    const birthdayPeople = employees.filter(
+      (e) => e.birthday === today && !alreadySentThisYear(logs, e.id)
+    );
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  const fromName = process.env.GMAIL_FROM_NAME || "The HR Team";
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-  });
+    if (birthdayPeople.length > 0) {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const fromName = process.env.GMAIL_FROM_NAME || "The HR Team";
+      const logoUrl = process.env.NEXT_PUBLIC_APP_URL
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/rezolve.gif`
+        : undefined;
 
-  const results = await Promise.allSettled(
-    birthdayPeople.map(async (employee) => {
-      const completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 300,
-        messages: [
-          {
-            role: "user",
-            content: `Write a warm, genuine 2–3 sentence birthday message for ${employee.name}${employee.department ? `, who works in ${employee.department}` : ""}${employee.notes ? `. Context: ${employee.notes}` : ""}.
-Start with "Dear ${employee.name},". Personal, heartfelt, no clichés. No subject line or sign-off.`,
-          },
-        ],
-      });
-      const message = completion.choices[0]?.message?.content
-        ?? `Dear ${employee.name},\n\nWishing you a wonderful birthday today! Your contributions to ${employee.department} are truly appreciated.`;
-
-      const html = buildEmailHTML(employee.name, employee.department, message, fromName);
-
-      // CC all other employees automatically
-      const ccEmails = employees
-        .filter((e) => e.id !== employee.id && e.email)
-        .map((e) => e.email)
-        .join(", ");
-
-      await transporter.sendMail({
-        from: `"${fromName}" <${process.env.GMAIL_USER}>`,
-        to: employee.email,
-        ...(ccEmails ? { cc: ccEmails } : {}),
-        subject: `🎂 Happy Birthday, ${employee.name}!`,
-        html,
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+        tls: { rejectUnauthorized: false },
       });
 
-      await appendLog({
-        id: randomUUID(),
-        employeeId: employee.id,
-        employeeName: employee.name,
-        sentAt: new Date().toISOString(),
-        year: new Date().getFullYear(),
-        status: "sent",
-      });
+      const birthdayResults = await Promise.allSettled(
+        birthdayPeople.map(async (employee) => {
+          // Generate message + mood + fuel from Groq
+          const completion = await groq.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
+            max_tokens: 300,
+            messages: [{
+              role: "user",
+              content: `Write a birthday message for ${employee.name}${employee.department ? `, who works in ${employee.department}` : ""}${employee.notes ? `. Context: ${employee.notes}` : ""}.
 
-      return { name: employee.name, email: employee.email };
-    })
-  );
+Return ONLY a valid JSON object:
+{
+  "message": "Dear ${employee.name}, [exactly 1 warm birthday sentence using we/our, never I/my]",
+  "mood": "[one upbeat word for their vibe today]",
+  "fuel": "[what they probably run on, 1-2 words]"
+}`,
+            }],
+          });
 
-  const sent = results.filter((r) => r.status === "fulfilled").length;
-  const failed = results.filter((r) => r.status === "rejected").length;
+          const raw = completion.choices[0]?.message?.content ?? "";
+          const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+          let message = `Dear ${employee.name}, wishing you a wonderful birthday from all of us!`;
+          let mood = "Sunny";
+          let fuel = "Coffee";
+          try {
+            const parsed = JSON.parse(cleaned);
+            message = parsed.message || message;
+            mood    = parsed.mood    || mood;
+            fuel    = parsed.fuel    || fuel;
+          } catch { /* keep defaults */ }
 
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    if (r.status === "rejected") {
-      console.error(`Failed for ${birthdayPeople[i].name}:`, r.reason);
-      await appendLog({
-        id: randomUUID(),
-        employeeId: birthdayPeople[i].id,
-        employeeName: birthdayPeople[i].name,
-        sentAt: new Date().toISOString(),
-        year: new Date().getFullYear(),
-        status: "failed",
-        error: String(r.reason),
-      });
+          const heroImageUrl = generateHeroImageUrl();
+          const palette      = resolvePalette();
+          const html = buildEmailHTML(
+            employee.name, employee.department, message, fromName,
+            undefined, mood, fuel, logoUrl, heroImageUrl, palette.id
+          );
+
+          // CC all other employees
+          const ccEmails = employees
+            .filter((e) => e.id !== employee.id && e.email)
+            .map((e) => e.email)
+            .join(", ");
+
+          await transporter.sendMail({
+            from:    `"${fromName}" <${process.env.GMAIL_USER}>`,
+            to:      employee.email,
+            ...(ccEmails ? { cc: ccEmails } : {}),
+            subject: `🎂 Happy Birthday, ${employee.name}!`,
+            html,
+          });
+
+          await appendLog({
+            id: randomUUID(), employeeId: employee.id, employeeName: employee.name,
+            sentAt: new Date().toISOString(), year: new Date().getFullYear(), status: "sent",
+          });
+        })
+      );
+
+      results.birthdaySent   = birthdayResults.filter((r) => r.status === "fulfilled").length;
+      results.birthdayFailed = birthdayResults.filter((r) => r.status === "rejected").length;
+
+      for (let i = 0; i < birthdayResults.length; i++) {
+        const r = birthdayResults[i];
+        if (r.status === "rejected") {
+          console.error(`Birthday send failed for ${birthdayPeople[i].name}:`, r.reason);
+          await appendLog({
+            id: randomUUID(), employeeId: birthdayPeople[i].id,
+            employeeName: birthdayPeople[i].name, sentAt: new Date().toISOString(),
+            year: new Date().getFullYear(), status: "failed", error: String(r.reason),
+          });
+        }
+      }
     }
+  } catch (err) {
+    console.error("Birthday send phase error:", err);
   }
 
-  return NextResponse.json({ sent, failed, total: birthdayPeople.length });
+  // ── 2. Scheduled sends ──────────────────────────────────────────────────────
+  try {
+    const due = await getDueScheduledSends();
+
+    const scheduledResults = await Promise.allSettled(
+      due.map(async (job) => {
+        const logoUrl = process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/rezolve.gif`
+          : undefined;
+
+        const html = buildEmailHTML(
+          job.employeeName, "", job.message, job.fromName,
+          undefined, job.mood, job.fuel, logoUrl, job.heroImageUrl, job.paletteId
+        );
+
+        const transporter = nodemailer.createTransport({
+          host: "smtp.gmail.com",
+          port: 465,
+          secure: true,
+          auth: { user: job.gmailUser, pass: job.gmailAppPassword },
+          tls: { rejectUnauthorized: false },
+        });
+
+        await transporter.sendMail({
+          from:    `"${job.fromName}" <${job.gmailUser}>`,
+          to:      job.employeeEmail,
+          ...(job.cc?.length ? { cc: job.cc.join(", ") } : {}),
+          subject: `🎂 Happy Birthday, ${job.employeeName}!`,
+          html,
+        });
+
+        await updateScheduledSendStatus(job.id, "sent", new Date().toISOString());
+      })
+    );
+
+    results.scheduledSent   = scheduledResults.filter((r) => r.status === "fulfilled").length;
+    results.scheduledFailed = scheduledResults.filter((r) => r.status === "rejected").length;
+
+    for (let i = 0; i < scheduledResults.length; i++) {
+      if (scheduledResults[i].status === "rejected") {
+        const r = scheduledResults[i] as PromiseRejectedResult;
+        console.error(`Scheduled send failed for job ${due[i].id}:`, r.reason);
+        await updateScheduledSendStatus(due[i].id, "pending"); // leave pending to retry
+      }
+    }
+  } catch (err) {
+    console.error("Scheduled send phase error:", err);
+  }
+
+  return NextResponse.json(results);
 }
-*/
