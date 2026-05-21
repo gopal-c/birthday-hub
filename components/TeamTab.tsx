@@ -20,7 +20,19 @@ function fmtBirthday(mmdd: string) {
   return `${months[parseInt(m) - 1]} ${parseInt(d)}`;
 }
 
-const EMPTY_FORM = { name: "", email: "", department: "", birthday: "", notes: "" };
+const MONTHS = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
+];
+const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
+
+function splitBirthday(mmdd: string) {
+  if (!mmdd) return { month: "", day: "" };
+  const [m, d] = mmdd.split("-");
+  return { month: m || "", day: d || "" };
+}
+
+const EMPTY_FORM = { name: "", email: "", department: "", month: "", day: "", notes: "" };
 
 interface Props {
   employees: Employee[];
@@ -48,29 +60,19 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
   );
 
   async function handleAdd() {
-    if (!form.name || !form.email || !form.birthday) return;
+    if (!form.name || !form.email || !form.month || !form.day) return;
     setSaving(true);
-    await onAdd({ name: form.name.trim(), email: form.email.trim().toLowerCase(), department: form.department.trim(), birthday: form.birthday, notes: form.notes.trim() || undefined });
+    await onAdd({ name: form.name.trim(), email: form.email.trim().toLowerCase(), department: form.department.trim(), birthday: `${form.month}-${form.day}`, notes: form.notes.trim() || undefined });
     setForm(EMPTY_FORM);
     setShowForm(false);
     setSaving(false);
   }
 
-  // Convert HTML date input (YYYY-MM-DD) to MM-DD
-  function handleDateChange(val: string) {
-    const mmdd = val.slice(5);
-    setForm((f) => ({ ...f, birthday: mmdd }));
-  }
-
-  // Convert MM-DD to YYYY-MM-DD for the input
-  function toInputDate(mmdd: string) {
-    return mmdd ? `2000-${mmdd}` : "";
-  }
-
   function openEdit(emp: Employee) {
     setShowForm(false);
     setEditId(emp.id);
-    setEditForm({ name: emp.name, email: emp.email, department: emp.department || "", birthday: emp.birthday, notes: emp.notes || "" });
+    const { month, day } = splitBirthday(emp.birthday);
+    setEditForm({ name: emp.name, email: emp.email, department: emp.department || "", month, day, notes: emp.notes || "" });
   }
 
   function cancelEdit() {
@@ -79,9 +81,9 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
   }
 
   async function handleEdit() {
-    if (!editId || !editForm.name || !editForm.email || !editForm.birthday) return;
+    if (!editId || !editForm.name || !editForm.email || !editForm.month || !editForm.day) return;
     setSaving(true);
-    await onEdit(editId, { name: editForm.name.trim(), email: editForm.email.trim().toLowerCase(), department: editForm.department.trim(), birthday: editForm.birthday, notes: editForm.notes.trim() || undefined });
+    await onEdit(editId, { name: editForm.name.trim(), email: editForm.email.trim().toLowerCase(), department: editForm.department.trim(), birthday: `${editForm.month}-${editForm.day}`, notes: editForm.notes.trim() || undefined });
     cancelEdit();
     setSaving(false);
   }
@@ -134,9 +136,28 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Birthday (month & day) *</label>
-              <input type="date" value={toInputDate(form.birthday)}
-                onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50" />
+              <div className="flex gap-2">
+                <select
+                  value={form.month}
+                  onChange={(e) => setForm((f) => ({ ...f, month: e.target.value }))}
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50 bg-white"
+                >
+                  <option value="">Month</option>
+                  {MONTHS.map((name, i) => (
+                    <option key={name} value={String(i + 1).padStart(2, "0")}>{name}</option>
+                  ))}
+                </select>
+                <select
+                  value={form.day}
+                  onChange={(e) => setForm((f) => ({ ...f, day: e.target.value }))}
+                  className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50 bg-white"
+                >
+                  <option value="">Day</option>
+                  {DAYS.map((d) => (
+                    <option key={d} value={d}>{parseInt(d)}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="col-span-2">
               <label className="text-xs text-gray-500 block mb-1">Notes (optional — for personalizing emails)</label>
@@ -148,7 +169,7 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
           <div className="flex justify-end gap-2 mt-4">
             <button onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}
               className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleAdd} disabled={!form.name || !form.email || !form.birthday || saving}
+            <button onClick={handleAdd} disabled={!form.name || !form.email || !form.month || !form.day || saving}
               className="px-4 py-2 text-sm text-white bg-[#2D1B69] rounded-lg hover:bg-[#3d2580] disabled:opacity-40">
               {saving ? "Saving…" : "Add Member"}
             </button>
@@ -185,9 +206,28 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Birthday (month & day) *</label>
-              <input type="date" value={toInputDate(editForm.birthday)}
-                onChange={(e) => setEditForm((f) => ({ ...f, birthday: e.target.value.slice(5) }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50" />
+              <div className="flex gap-2">
+                <select
+                  value={editForm.month}
+                  onChange={(e) => setEditForm((f) => ({ ...f, month: e.target.value }))}
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50 bg-white"
+                >
+                  <option value="">Month</option>
+                  {MONTHS.map((name, i) => (
+                    <option key={name} value={String(i + 1).padStart(2, "0")}>{name}</option>
+                  ))}
+                </select>
+                <select
+                  value={editForm.day}
+                  onChange={(e) => setEditForm((f) => ({ ...f, day: e.target.value }))}
+                  className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50 bg-white"
+                >
+                  <option value="">Day</option>
+                  {DAYS.map((d) => (
+                    <option key={d} value={d}>{parseInt(d)}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="col-span-2">
               <label className="text-xs text-gray-500 block mb-1">Notes (optional)</label>
@@ -199,7 +239,7 @@ export default function TeamTab({ employees, onAdd, onEdit, onDelete, onImport, 
           <div className="flex justify-end gap-2 mt-4">
             <button onClick={cancelEdit}
               className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleEdit} disabled={!editForm.name || !editForm.email || !editForm.birthday || saving}
+            <button onClick={handleEdit} disabled={!editForm.name || !editForm.email || !editForm.month || !editForm.day || saving}
               className="px-4 py-2 text-sm text-white bg-[#2D1B69] rounded-lg hover:bg-[#3d2580] disabled:opacity-40">
               {saving ? "Saving…" : "Save Changes"}
             </button>
