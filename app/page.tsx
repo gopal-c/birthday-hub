@@ -148,7 +148,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       {/* Top nav */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
               style={{ background: "#2D1B69" }}>
@@ -163,7 +163,7 @@ export default function Home() {
               <button
                 key={key}
                 onClick={() => { setTab(key); if (key !== "compose") setComposeTarget(null); }}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                   tab === key
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-500 hover:text-gray-800"
@@ -181,14 +181,14 @@ export default function Home() {
             ))}
           </nav>
 
-          <div className="text-xs text-gray-400">
+          <div className="hidden sm:block text-xs text-gray-400 whitespace-nowrap">
             {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
           </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="max-w-3xl mx-auto px-6 py-8">
+      <main className="max-w-5xl mx-auto px-6 py-8">
         {loading ? (
           <div className="flex items-center justify-center py-24 gap-3">
             <span className="spin text-2xl">🎂</span>
