@@ -47,7 +47,7 @@ const HERO_PROMPTS = [
 export function generateHeroImageUrl(seed?: number): string {
   const s = seed ?? Math.floor(Math.random() * 1000);
   const prompt = HERO_PROMPTS[Math.floor(Math.random() * HERO_PROMPTS.length)];
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&nologo=true&seed=${s}`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=800&nologo=true&seed=${s}`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
