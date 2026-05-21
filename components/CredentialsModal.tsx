@@ -180,26 +180,31 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
             </label>
 
             {scheduled && (
-              <div className="mt-2.5 flex gap-2">
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 block mb-1">Date</label>
-                  <input
-                    type="date"
-                    value={scheduleDate}
-                    min={new Date().toISOString().split("T")[0]}
-                    onChange={(e) => setScheduleDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50"
-                  />
+              <div className="mt-2.5 space-y-2">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-500 block mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={scheduleDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50"
+                    />
+                  </div>
+                  <div className="w-28">
+                    <label className="text-xs text-gray-500 block mb-1">Time</label>
+                    <input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50"
+                    />
+                  </div>
                 </div>
-                <div className="w-28">
-                  <label className="text-xs text-gray-500 block mb-1">Time</label>
-                  <input
-                    type="time"
-                    value={scheduleTime}
-                    onChange={(e) => setScheduleTime(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2D1B69]/50"
-                  />
-                </div>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  The email sends when Birthday Hub is open in your browser at the scheduled time, or by 8 AM the next morning via auto-send.
+                </p>
               </div>
             )}
           </div>

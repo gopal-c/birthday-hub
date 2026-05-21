@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import type { Employee, SendLog } from "@/lib/types";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { Employee, SendLog, ScheduledSend } from "@/lib/types";
 import Dashboard from "@/components/Dashboard";
 import TeamTab from "@/components/TeamTab";
 import ComposeTab from "@/components/ComposeTab";
@@ -17,6 +17,64 @@ export default function Home() {
   const [composeTarget, setComposeTarget] = useState<Employee | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
+  const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
+  const checkingRef = useRef(false);
+
+  function addToast(text: string) {
+    const id = Math.random().toString(36).slice(2);
+    setToasts((prev) => [...prev, { id, text }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
+  }
+
+  const checkScheduled = useCallback(async () => {
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    try {
+      const res = await fetch("/api/schedule/due");
+      if (!res.ok) return;
+      const due: ScheduledSend[] = await res.json();
+      if (due.length === 0) return;
+
+      let sentCount = 0;
+      await Promise.all(
+        due.map(async (job) => {
+          try {
+            const sendRes = await fetch("/api/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                employeeId: job.employeeId,
+                message: job.message,
+                gmailUser: job.gmailUser,
+                gmailAppPassword: job.gmailAppPassword,
+                fromName: job.fromName,
+                mood: job.mood,
+                fuel: job.fuel,
+                heroImageUrl: job.heroImageUrl,
+                paletteId: job.paletteId,
+                cc: job.cc,
+                scheduledJobId: job.id,
+              }),
+            });
+            if (sendRes.ok) {
+              addToast(`✅ Scheduled email sent to ${job.employeeName}`);
+              sentCount++;
+            }
+          } catch {
+            /* silent — cron will retry */
+          }
+        })
+      );
+
+      if (sentCount > 0) {
+        setScheduledRefreshKey((k) => k + 1);
+      }
+    } catch {
+      /* silent */
+    } finally {
+      checkingRef.current = false;
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     const [empRes, logRes] = await Promise.all([
@@ -29,6 +87,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Check for due scheduled sends on mount and whenever the tab regains focus
+  useEffect(() => {
+    checkScheduled();
+    window.addEventListener("focus", checkScheduled);
+    return () => window.removeEventListener("focus", checkScheduled);
+  }, [checkScheduled]);
 
   async function handleAdd(data: Omit<Employee, "id" | "createdAt">) {
     const res = await fetch("/api/employees", {
@@ -174,6 +239,20 @@ export default function Home() {
       <footer className="text-center py-6 text-xs text-gray-300">
         Birthday Hub · Automated with ♥ Design Team
       </footer>
+
+      {/* Toast notifications */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              className="bg-gray-900 text-white text-sm px-4 py-3 rounded-xl shadow-lg flex items-center gap-2.5 animate-fade-in"
+            >
+              {t.text}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

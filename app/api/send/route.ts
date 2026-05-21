@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { getEmployee, appendLog } from "@/lib/storage";
+import { getEmployee, appendLog, updateScheduledSendStatus } from "@/lib/storage";
 import { buildEmailHTML } from "@/lib/email-template";
 import { randomUUID } from "crypto";
 
@@ -18,7 +18,7 @@ function getTransporter(gmailUser: string, gmailAppPassword: string) {
 }
 
 export async function POST(req: Request) {
-  const { employeeId, message, gmailUser, gmailAppPassword, fromName: bodyFromName, mood, fuel, heroImageUrl, paletteId, cc } = await req.json();
+  const { employeeId, message, gmailUser, gmailAppPassword, fromName: bodyFromName, mood, fuel, heroImageUrl, paletteId, cc, scheduledJobId } = await req.json();
 
   if (!employeeId || !message) {
     return NextResponse.json({ error: "employeeId and message are required" }, { status: 400 });
@@ -58,14 +58,21 @@ export async function POST(req: Request) {
       html,
     });
 
+    const sentAt = new Date().toISOString();
+
     await appendLog({
       id: randomUUID(),
       employeeId: employee.id,
       employeeName: employee.name,
-      sentAt: new Date().toISOString(),
+      sentAt,
       year: new Date().getFullYear(),
       status: "sent",
     });
+
+    // If this was a scheduled send, mark the job as sent
+    if (scheduledJobId) {
+      await updateScheduledSendStatus(scheduledJobId, "sent", sentAt);
+    }
 
     return NextResponse.json({ ok: true, to: employee.email });
   } catch (err: unknown) {
