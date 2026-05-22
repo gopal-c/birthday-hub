@@ -2,7 +2,7 @@ name: Birthday Auto-Send
 
 on:
   schedule:
-    - cron: '13 9 * * *'
+    - cron: '30 9 * * *'
   workflow_dispatch:
 
 jobs:
