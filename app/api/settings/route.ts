@@ -16,7 +16,12 @@ export async function POST(req: Request) {
     fromName:        body.fromName        ?? current.fromName,
     replyTo:         body.replyTo         ?? current.replyTo,
     autoSendEnabled: body.autoSendEnabled ?? current.autoSendEnabled,
-    ccBehavior:      body.ccBehavior      ?? current.ccBehavior,
+    sendTimeIST:     body.sendTimeIST     ?? current.sendTimeIST,
+    sendTimeUTC:     body.sendTimeUTC     ?? current.sendTimeUTC,
+    cronExpression:  body.cronExpression  ?? current.cronExpression,
+    ccMode:          body.ccMode          ?? current.ccMode,
+    customCCList:    body.customCCList    ?? current.customCCList,
+    bccOverride:     body.bccOverride     ?? current.bccOverride,
   };
   await saveSettings(updated);
   return NextResponse.json(updated);

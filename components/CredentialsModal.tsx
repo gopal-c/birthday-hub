@@ -43,23 +43,31 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
   const [remember, setRemember] = useState(true);
   const [showPass, setShowPass] = useState(false);
   const [ccBehavior, setCcBehavior] = useState<CcBehavior>("cc");
+  const [ccVisible, setCcVisible] = useState(true);
 
-  // Fetch settings to pre-fill From Name and CC behavior defaults
+  // CC — start with everyone in ccList selected; may be overridden by settings below
+  const [ccEmails, setCcEmails] = useState<string[]>(() => ccList.map((p) => p.email));
+
+  // Fetch settings to pre-fill From Name and apply ccMode
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((s) => {
         if (!fromName) setFromName(s.fromName || "The HR Team");
-        setCcBehavior(s.ccBehavior || "cc");
+        const mode: string = s.ccMode || "all";
+        if (mode === "none") {
+          setCcVisible(false);
+          setCcEmails([]);
+        } else if (mode === "custom") {
+          setCcEmails(s.customCCList || []);
+        }
+        // mode === "all" → keep initial state (all employees selected)
       })
       .catch(() => {
         if (!fromName) setFromName("The HR Team");
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // CC — start with everyone in ccList selected
-  const [ccEmails, setCcEmails] = useState<string[]>(() => ccList.map((p) => p.email));
 
   // Schedule state
   const [scheduled, setScheduled] = useState(false);
@@ -70,10 +78,13 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
   });
   const [scheduleTime, setScheduleTime] = useState("09:00");
 
-  const allSelected = ccEmails.length === ccList.length;
+  // toggleAll only applies in "all employees" mode
+  const allEmployeeEmails = ccList.map((p) => p.email);
+  const allSelected = ccEmails.length > 0 && ccEmails.length === allEmployeeEmails.length &&
+    allEmployeeEmails.every((e) => ccEmails.includes(e));
 
   function toggleAll() {
-    setCcEmails(allSelected ? [] : ccList.map((p) => p.email));
+    setCcEmails(allSelected ? [] : allEmployeeEmails);
   }
 
   function removeChip(email: string) {
@@ -128,57 +139,58 @@ export default function CredentialsModal({ ccList, onConfirm, onCancel }: Props)
             />
           </div>
 
-          {/* CC section */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-gray-600">
-                CC — Team Members
-                <span className="ml-1.5 font-normal text-gray-400">
-                  ({ccEmails.length}/{ccList.length} selected)
-                </span>
-              </label>
-              {ccList.length > 0 && (
-                <button
-                  type="button"
-                  onClick={toggleAll}
-                  className="text-xs text-[#2D1B69] hover:underline underline-offset-2"
-                >
-                  {allSelected ? "Remove all" : "Select all"}
-                </button>
-              )}
-            </div>
+          {/* CC section — hidden when ccMode=none in Settings */}
+          {ccVisible && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-gray-600">
+                  CC
+                  <span className="ml-1.5 font-normal text-gray-400">
+                    ({ccEmails.length} selected)
+                  </span>
+                </label>
+                {ccList.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={toggleAll}
+                    className="text-xs text-[#2D1B69] hover:underline underline-offset-2"
+                  >
+                    {allSelected ? "Remove all" : "Select all"}
+                  </button>
+                )}
+              </div>
 
-            <div className="min-h-[40px] max-h-32 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50 p-2">
-              {ccList.length === 0 ? (
-                <p className="text-xs text-gray-400 italic p-1">No other team members</p>
-              ) : (
+              <div className="min-h-[40px] max-h-32 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50 p-2">
                 <div className="flex flex-wrap gap-1.5">
-                  {ccList.map((person) => {
-                    const included = ccEmails.includes(person.email);
-                    return included ? (
+                  {ccEmails.map((email) => {
+                    // Show name for known employees, raw email for custom addresses
+                    const person = ccList.find((p) => p.email === email);
+                    return (
                       <span
-                        key={person.email}
+                        key={email}
                         className="inline-flex items-center gap-1 bg-[#EEEDFE] text-[#2D1B69] px-2.5 py-1 rounded-full text-xs font-medium"
                       >
-                        {person.name}
+                        {person ? person.name : email}
                         <button
                           type="button"
-                          onClick={() => removeChip(person.email)}
+                          onClick={() => removeChip(email)}
                           className="leading-none opacity-60 hover:opacity-100 text-sm font-bold"
-                          aria-label={`Remove ${person.name}`}
+                          aria-label={`Remove ${person?.name ?? email}`}
                         >
                           ×
                         </button>
                       </span>
-                    ) : null;
+                    );
                   })}
                   {ccEmails.length === 0 && (
-                    <p className="text-xs text-gray-400 italic p-0.5">No recipients — click "Select all" to restore</p>
+                    <p className="text-xs text-gray-400 italic p-0.5">
+                      No CC recipients
+                    </p>
                   )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* CC behavior */}
           <div>

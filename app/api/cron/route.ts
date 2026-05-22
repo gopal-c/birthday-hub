@@ -91,14 +91,22 @@ Return ONLY a valid JSON object:
             undefined, mood, fuel, logoUrl, heroImageUrl, palette.id
           );
 
-          // CC/BCC other employees according to settings
-          const otherEmails = employees
-            .filter((e) => e.id !== employee.id && e.email)
-            .map((e) => e.email);
-          const behavior = otherEmails.length > 50 ? "bcc" : settings.ccBehavior;
-          const recipientField = otherEmails.length > 0 && behavior !== "none"
-            ? { [behavior]: otherEmails.join(", ") }
-            : {};
+          // Build CC list based on ccMode setting
+          let ccEmails: string[] = [];
+          if (settings.ccMode === "all") {
+            ccEmails = employees
+              .filter((e) => e.id !== employee.id && e.email)
+              .map((e) => e.email);
+          } else if (settings.ccMode === "custom") {
+            ccEmails = settings.customCCList || [];
+          }
+          // ccMode === "none" → ccEmails stays empty
+
+          const useBcc = settings.bccOverride && ccEmails.length > 50;
+          const recipientField =
+            ccEmails.length > 0
+              ? { [useBcc ? "bcc" : "cc"]: ccEmails.join(", ") }
+              : {};
 
           await transporter.sendMail({
             from:    `"${fromName}" <${process.env.GMAIL_USER}>`,

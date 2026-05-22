@@ -184,7 +184,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   fromName: process.env.GMAIL_FROM_NAME || "The HR Team",
   replyTo: "",
   autoSendEnabled: true,
-  ccBehavior: "cc",
+  sendTimeIST: "09:00",
+  sendTimeUTC: "03:30",
+  cronExpression: "30 3 * * *",
+  ccMode: "all",
+  customCCList: [],
+  bccOverride: true,
 };
 
 export async function getSettings(): Promise<AppSettings> {

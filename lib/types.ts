@@ -54,5 +54,10 @@ export interface AppSettings {
   fromName: string;
   replyTo: string;
   autoSendEnabled: boolean;
-  ccBehavior: "cc" | "bcc" | "none";
+  sendTimeIST: string;     // e.g. "09:00"
+  sendTimeUTC: string;     // e.g. "03:30"
+  cronExpression: string;  // e.g. "30 3 * * *"
+  ccMode: "all" | "custom" | "none";
+  customCCList: string[];
+  bccOverride: boolean;    // auto-BCC when CC list exceeds 50
 }
