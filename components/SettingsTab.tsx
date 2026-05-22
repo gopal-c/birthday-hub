@@ -117,13 +117,20 @@ export default function SettingsTab() {
   const [saved, setSaved]       = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearing, setClearing]         = useState(false);
-  const [newCCEmail, setNewCCEmail]     = useState("");
-  const [copiedCron, setCopiedCron]     = useState(false);
+  const [newCCEmail, setNewCCEmail]   = useState("");
+  const [savedCronExpr, setSavedCronExpr] = useState(DEFAULT.cronExpression);
+  const [cronStatus, setCronStatus]   = useState<"idle" | "updating" | "ok" | "error">("idle");
+  const [runningNow, setRunningNow]   = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((s: AppSettings) => { setSettings({ ...DEFAULT, ...s }); setLoading(false); })
+      .then((s: AppSettings) => {
+        const merged = { ...DEFAULT, ...s };
+        setSettings(merged);
+        setSavedCronExpr(merged.cronExpression);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
@@ -138,9 +145,38 @@ export default function SettingsTab() {
       if (res.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
+
+        // If the cron expression changed, push it to GitHub Actions
+        if (settings.cronExpression !== savedCronExpr) {
+          setCronStatus("updating");
+          try {
+            const cronRes = await fetch("/api/settings/cron", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cronExpression: settings.cronExpression }),
+            });
+            setCronStatus(cronRes.ok ? "ok" : "error");
+            if (cronRes.ok) setSavedCronExpr(settings.cronExpression);
+          } catch {
+            setCronStatus("error");
+          }
+          setTimeout(() => setCronStatus("idle"), 6000);
+        }
       }
     } catch { /* silent */ }
     setSaving(false);
+  }
+
+  async function handleRunNow() {
+    setRunningNow(true);
+    try {
+      await fetch("/api/settings/cron", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dispatch: true }),
+      });
+    } catch { /* silent */ }
+    setRunningNow(false);
   }
 
   async function handleClearLogs() {
@@ -157,12 +193,6 @@ export default function SettingsTab() {
   function handleISTChange(ist: string) {
     const { utc, cron } = istToUtc(ist);
     setSettings((s) => ({ ...s, sendTimeIST: ist, sendTimeUTC: utc, cronExpression: cron }));
-  }
-
-  function copyCron() {
-    navigator.clipboard.writeText(settings.cronExpression).catch(() => {});
-    setCopiedCron(true);
-    setTimeout(() => setCopiedCron(false), 2000);
   }
 
   function addCCEmail() {
@@ -254,30 +284,51 @@ export default function SettingsTab() {
           />
 
           {/* Live UTC conversion */}
-          <div className="flex items-center gap-2 mt-2">
-            <p className="text-xs text-gray-500">
-              ={" "}
-              <span className="font-medium text-gray-700">
-                {settings.sendTimeUTC} UTC
-              </span>
-              {" · runs as "}
-              <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-                {settings.cronExpression}
-              </code>
-            </p>
-            <button
-              onClick={copyCron}
-              className="text-xs text-[#2D1B69] border border-[#2D1B69]/20 px-2 py-0.5 rounded hover:bg-[#EEEDFE] transition-colors flex-shrink-0"
-            >
-              {copiedCron ? "✓ Copied" : "Copy"}
-            </button>
-          </div>
-
-          <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-            After changing, update{" "}
-            <code className="font-mono bg-gray-100 px-1 rounded">vercel.json</code>
-            {" "}with the new cron expression and redeploy.
+          <p className="text-xs text-gray-500 mt-2">
+            ={" "}
+            <span className="font-medium text-gray-700">
+              {settings.sendTimeUTC} UTC
+            </span>
+            {" · runs as "}
+            <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
+              {settings.cronExpression}
+            </code>
           </p>
+
+          {/* GitHub Actions sync status */}
+          {cronStatus === "updating" && (
+            <p className="text-xs text-gray-400 mt-2">
+              Updating GitHub Actions schedule…
+            </p>
+          )}
+          {cronStatus === "ok" && (
+            <p className="text-xs text-teal-600 mt-2">
+              ✅ Schedule updated — takes effect from tomorrow
+            </p>
+          )}
+          {cronStatus === "error" && (
+            <p className="text-xs text-red-500 mt-2">
+              ⚠️ Could not update GitHub Actions — check{" "}
+              <code className="font-mono bg-red-50 px-0.5 rounded">GITHUB_TOKEN</code>
+              {" "}and{" "}
+              <code className="font-mono bg-red-50 px-0.5 rounded">GITHUB_REPO</code>
+              {" "}env vars.
+            </p>
+          )}
+          {cronStatus === "idle" && (
+            <p className="text-xs text-gray-400 mt-2">
+              Saving automatically updates the GitHub Actions schedule.
+            </p>
+          )}
+
+          {/* Run Now button */}
+          <button
+            onClick={handleRunNow}
+            disabled={runningNow}
+            className="mt-3 flex items-center gap-1.5 text-xs text-[#2D1B69] border border-[#2D1B69]/20 px-3 py-1.5 rounded-lg hover:bg-[#EEEDFE] transition-colors disabled:opacity-40"
+          >
+            {runningNow ? "⏳ Triggering…" : "▶ Run Auto-Send Now"}
+          </button>
         </div>
       </SectionCard>
 
