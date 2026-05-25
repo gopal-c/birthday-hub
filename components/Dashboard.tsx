@@ -1,4 +1,5 @@
 "use client";
+import { useState, useRef, useEffect } from "react";
 import type { Employee, SendLog } from "@/lib/types";
 
 const DEPT_COLORS: Record<string, { bg: string; text: string }> = {
@@ -37,6 +38,11 @@ function todayMMDD() {
 function currentMonth() {
   return String(new Date().getMonth() + 1).padStart(2, "0");
 }
+function monthLabel(isoDate: string) {
+  return new Date(isoDate).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+const COLLAPSED_COUNT = 5;
 
 interface Props {
   employees: Employee[];
@@ -57,16 +63,47 @@ export default function Dashboard({ employees, logs, onCompose }: Props) {
 
   const thisMonthCount = employees.filter((e) => e.birthday.startsWith(month)).length;
   const sentThisYear   = logs.filter((l) => l.year === new Date().getFullYear() && l.status === "sent").length;
-  const recentLogs     = logs.slice(0, 5);
+
+  // ── Accordion state ──────────────────────────────────────────────────────────
+  const [expanded, setExpanded] = useState(false);
+  const innerRef  = useRef<HTMLDivElement>(null);
+  const [innerH, setInnerH]   = useState(0);
+
+  useEffect(() => {
+    if (!innerRef.current) return;
+    const ro = new ResizeObserver(() => {
+      setInnerH(innerRef.current?.scrollHeight ?? 0);
+    });
+    ro.observe(innerRef.current);
+    setInnerH(innerRef.current.scrollHeight);
+    return () => ro.disconnect();
+  }, [logs]);
+
+  // Collapsed view: 5 most recent flat list
+  const recentLogs = logs.slice(0, COLLAPSED_COUNT);
+
+  // Expanded view: all logs grouped by month
+  const groupedLogs: { label: string; items: SendLog[] }[] = [];
+  for (const log of logs) {
+    const label = monthLabel(log.sentAt);
+    const last  = groupedLogs[groupedLogs.length - 1];
+    if (last && last.label === label) {
+      last.items.push(log);
+    } else {
+      groupedLogs.push({ label, items: [log] });
+    }
+  }
+
+  const hasMore = logs.length > COLLAPSED_COUNT;
 
   return (
     <div className="space-y-6">
       {/* Stat row */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Team Members", value: employees.length, icon: "👥" },
-          { label: "This Month",   value: thisMonthCount,    icon: "📅" },
-          { label: "Sent This Year",value: sentThisYear,    icon: "✉️" },
+          { label: "Team Members",  value: employees.length, icon: "👥" },
+          { label: "This Month",    value: thisMonthCount,   icon: "📅" },
+          { label: "Sent This Year",value: sentThisYear,     icon: "✉️" },
         ].map(({ label, value, icon }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-100 p-4">
             <p className="text-xs text-gray-500 flex items-center gap-1.5"><span>{icon}</span>{label}</p>
@@ -156,26 +193,93 @@ export default function Dashboard({ employees, logs, onCompose }: Props) {
         </div>
       </div>
 
-      {/* Recent logs */}
-      {recentLogs.length > 0 && (
+      {/* Recent emails — collapsible accordion */}
+      {logs.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-3">Recent Emails</h3>
-          <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
-            {recentLogs.map((log) => (
-              <div key={log.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-sm">{log.status === "sent" ? "✅" : "❌"}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700 truncate">{log.employeeName}</p>
-                  <p className="text-xs text-gray-400">{new Date(log.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${log.status === "sent" ? "bg-teal-50 text-teal-700" : "bg-red-50 text-red-600"}`}>
-                  {log.status}
-                </span>
+          <h3 className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-3">
+            Recent Emails{logs.length > 0 && <span className="ml-1.5 normal-case font-normal text-gray-300">({logs.length})</span>}
+          </h3>
+
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            {/* Animated container */}
+            <div
+              style={{
+                maxHeight: expanded ? `${innerH}px` : `${COLLAPSED_COUNT * 56}px`,
+                transition: "max-height 0.35s cubic-bezier(0.4,0,0.2,1)",
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <div ref={innerRef}>
+                {expanded ? (
+                  /* ── Grouped view ─────────────────────────────────────────── */
+                  groupedLogs.map(({ label, items }) => (
+                    <div key={label}>
+                      {/* Month divider */}
+                      <div className="sticky top-0 z-10 px-4 py-1.5 bg-gray-50/90 backdrop-blur-sm border-y border-gray-100">
+                        <span className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">{label}</span>
+                      </div>
+                      {items.map((log) => (
+                        <LogRow key={log.id} log={log} />
+                      ))}
+                    </div>
+                  ))
+                ) : (
+                  /* ── Flat recent view ─────────────────────────────────────── */
+                  recentLogs.map((log) => (
+                    <LogRow key={log.id} log={log} />
+                  ))
+                )}
               </div>
-            ))}
+
+              {/* Fade gradient — only in collapsed state */}
+              {!expanded && hasMore && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+                  style={{ background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.95))" }}
+                />
+              )}
+            </div>
+
+            {/* Expand / collapse button */}
+            {hasMore && (
+              <button
+                onClick={() => setExpanded((x) => !x)}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors border-t border-gray-50 hover:bg-gray-50/60"
+              >
+                <span>{expanded ? "Show less" : `Show all ${logs.length} emails`}</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12" height="12"
+                  viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5"
+                  strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function LogRow({ log }: { log: SendLog }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-b-0">
+      <span className="text-sm">{log.status === "sent" ? "✅" : "❌"}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-700 truncate">{log.employeeName}</p>
+        <p className="text-xs text-gray-400">
+          {new Date(log.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+      </div>
+      <span className={`text-xs px-2 py-0.5 rounded-full ${log.status === "sent" ? "bg-teal-50 text-teal-700" : "bg-red-50 text-red-600"}`}>
+        {log.status}
+      </span>
     </div>
   );
 }
