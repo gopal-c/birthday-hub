@@ -161,11 +161,26 @@ export async function getLogs(): Promise<SendLog[]> {
 
 export async function appendLog(log: SendLog): Promise<void> {
   if (!hasDb()) {
+    const existing = mem.logs.find(
+      l => l.employeeId === log.employeeId &&
+           l.year === log.year &&
+           l.status === "sent"
+    );
+    if (existing) return;
     mem.logs.unshift(log);
     mem.logs = mem.logs.slice(0, 200);
     return;
   }
   await ensureSchema();
+  // Skip if a "sent" entry already exists for this employee + year
+  const { rows } = await sql`
+    SELECT 1 FROM send_logs
+    WHERE employee_id = ${log.employeeId}
+      AND year = ${log.year}
+      AND status = 'sent'
+    LIMIT 1
+  `;
+  if (rows.length > 0) return;
   await sql`
     INSERT INTO send_logs (id, employee_id, employee_name, sent_at, year, status, error)
     VALUES (${log.id}, ${log.employeeId}, ${log.employeeName}, ${log.sentAt}, ${log.year}, ${log.status}, ${log.error || null})
