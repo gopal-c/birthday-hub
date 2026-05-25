@@ -25,16 +25,21 @@ export async function GET(req: NextRequest) {
   // Load settings once for this cron tick
   const settings = await getSettings();
 
+  // Hoisted so debug info is available in the final response
+  const today = todayMMDD();
+  let employees: Awaited<ReturnType<typeof getEmployees>> = [];
+  let logs:      Awaited<ReturnType<typeof getLogs>>      = [];
+  let birthdayPeople: typeof employees = [];
+
   // ── 1. Birthday emails ──────────────────────────────────────────────────────
   if (!settings.autoSendEnabled) {
     results.birthdaySent = 0;
     results.birthdayFailed = 0;
   } else
   try {
-    const today = todayMMDD();
-    const [employees, logs] = await Promise.all([getEmployees(), getLogs()]);
+    [employees, logs] = await Promise.all([getEmployees(), getLogs()]);
 
-    const birthdayPeople = employees.filter(
+    birthdayPeople = employees.filter(
       (e) => e.birthday === today && !alreadySentThisYear(logs, e.id)
     );
 
@@ -198,5 +203,16 @@ Return ONLY a valid JSON object:
     console.error("Scheduled send phase error:", err);
   }
 
-  return NextResponse.json(results);
+  const year = new Date().getFullYear();
+  return NextResponse.json({
+    ...results,
+    // ── debug info ──────────────────────────────────────────────────────────
+    today,
+    autoSendEnabled: settings.autoSendEnabled,
+    totalEmployees: employees.length,
+    birthdayPeople: birthdayPeople.map((e) => ({ name: e.name, birthday: e.birthday })),
+    alreadySentIds: logs
+      .filter((l) => l.year === year && l.status === "sent")
+      .map((l) => l.employeeId),
+  });
 }
