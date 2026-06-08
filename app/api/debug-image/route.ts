@@ -1,21 +1,30 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  // First list available models
-  const listRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`
-  );
-  const listData = await listRes.json();
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-001:predict?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instances: [{ prompt: 'birthday cake candles pastel pink aesthetic' }],
+          parameters: { sampleCount: 1, aspectRatio: '16:9' },
+        }),
+      }
+    );
 
-  // Filter image-related models
-  const imageModels = listData.models?.filter((m: { name: string; supportedGenerationMethods?: string[] }) =>
-    m.name.includes('imagen') ||
-    m.name.includes('image') ||
-    m.supportedGenerationMethods?.includes('predict')
-  ).map((m: { name: string; supportedGenerationMethods?: string[] }) => ({
-    name: m.name,
-    methods: m.supportedGenerationMethods,
-  }));
-
-  return NextResponse.json({ imageModels });
+    const data = await res.json();
+    const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+    return NextResponse.json({
+      status: res.status,
+      statusText: res.statusText,
+      hasImage: !!b64,
+      previewUrl: b64 ? `data:image/png;base64,${b64.slice(0, 60)}...` : null,
+      geminiKeyPresent: !!process.env.GEMINI_API_KEY,
+      ...(b64 ? {} : { data }),
+    });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) });
+  }
 }
