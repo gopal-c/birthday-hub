@@ -11,28 +11,33 @@ export async function generateBirthdayImage(): Promise<string> {
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-001:predict?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instances: [{ prompt }],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: '16:9',
+          contents: [{
+            parts: [{ text: prompt }],
+          }],
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE'],
           },
         }),
       }
     );
 
     const data = await res.json();
-    console.log('Imagen response status:', res.status);
-    console.log('Imagen response:', JSON.stringify(data).slice(0, 200));
+    console.log('Gemini image response status:', res.status);
+    console.log('Gemini image response:', JSON.stringify(data).slice(0, 200));
 
-    const b64 = data.predictions?.[0]?.bytesBase64Encoded;
-    if (b64) return `data:image/png;base64,${b64}`;
+    const imagePart = data.candidates?.[0]?.content?.parts?.find(
+      (p: { inlineData?: { mimeType: string; data: string } }) => p.inlineData
+    );
+    if (imagePart?.inlineData) {
+      return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+    }
   } catch (err) {
-    console.error('Imagen error:', err);
+    console.error('Gemini image error:', err);
   }
 
   return '';
