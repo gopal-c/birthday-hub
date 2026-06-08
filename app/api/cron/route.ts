@@ -5,7 +5,8 @@ import {
   getEmployees, getLogs, appendLog, todayMMDD, alreadySentThisYear,
   getDueScheduledSends, updateScheduledSendStatus, getSettings,
 } from "@/lib/storage";
-import { buildEmailHTML, generateHeroImageUrl, resolvePalette } from "@/lib/email-template";
+import { buildEmailHTML, resolvePalette } from "@/lib/email-template";
+import { generateBirthdayImage } from "@/lib/generate-image";
 import { randomUUID } from "crypto";
 
 // Runs every 15 minutes via Vercel Cron.
@@ -89,7 +90,7 @@ Return ONLY a valid JSON object:
             fuel    = parsed.fuel    || fuel;
           } catch { /* keep defaults */ }
 
-          const heroImageUrl = generateHeroImageUrl();
+          const heroImageUrl = await generateBirthdayImage(employee.name, employee.department || "");
           const palette      = resolvePalette();
           const html = buildEmailHTML(
             employee.name, employee.department, message, fromName,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { buildEmailHTML, generateHeroImageUrl, resolvePalette } from "@/lib/email-template";
+import { buildEmailHTML, resolvePalette } from "@/lib/email-template";
+import { generateBirthdayImage } from "@/lib/generate-image";
 
 export async function POST(req: Request) {
   const {
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
 
   // Generate fresh values when none supplied (i.e. on Regenerate).
   // When the caller passes existing values they are reused (edit mode).
-  const resolvedImageUrl: string = inputImageUrl || generateHeroImageUrl();
+  const resolvedImageUrl: string = inputImageUrl || await generateBirthdayImage(name || "", department || "");
   const resolvedPalette = resolvePalette(inputPaletteId || undefined);
 
   const html = buildEmailHTML(

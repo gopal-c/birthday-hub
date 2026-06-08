@@ -33,21 +33,25 @@ export function resolvePalette(id?: string): Palette {
   );
 }
 
-// ── Pollinations image prompts ────────────────────────────────────────────────
-const HERO_PROMPTS = [
-  "birthday celebration flatlay, soft pastel pink and cream background, macarons roses gold confetti, aesthetic minimal, studio lighting, top down view",
-  "elegant birthday setup soft lavender and white background, candles flowers ribbon bokeh, dreamy pastel aesthetic, soft focus",
-  "birthday cake close up sage green and blush pink pastel background, flowers berries gold leaf, aesthetic food photography, soft natural light",
-  "festive celebration still life, soft peach and ivory background, champagne flowers confetti ribbons, luxury minimal aesthetic",
-  "birthday morning flatlay, soft blue and white pastel, coffee flowers small gifts wrapped in ribbon, cozy aesthetic editorial",
-  "colorful balloons bouquet against soft yellow cream gradient background, minimal modern aesthetic, studio shot airy light",
+// ── Fallback SVG hero images (used when Gemini generation fails) ──────────────
+const FALLBACK_SVGS = [
+  // Cake — pink/peach
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><defs><linearGradient id="fb0" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe8e0"/><stop offset="100%" stop-color="#ffd0e8"/></linearGradient></defs><rect width="640" height="360" fill="url(#fb0)"/><circle cx="80" cy="60" r="12" fill="#f9c4d4" opacity=".55"/><circle cx="570" cy="90" r="16" fill="#d4e8f4" opacity=".5"/><circle cx="110" cy="295" r="9" fill="#c4f4d4" opacity=".55"/><circle cx="535" cy="270" r="12" fill="#f4d4a0" opacity=".55"/><circle cx="490" cy="50" r="8" fill="#d4c4f4" opacity=".5"/><circle cx="155" cy="155" r="7" fill="#f4c4b4" opacity=".5"/><rect x="170" y="250" width="300" height="82" rx="14" fill="#f7bdc8"/><rect x="170" y="247" width="300" height="18" rx="9" fill="white" opacity=".65"/><rect x="205" y="182" width="230" height="72" rx="14" fill="#fbc7d0"/><rect x="205" y="179" width="230" height="18" rx="9" fill="white" opacity=".65"/><rect x="245" y="138" width="150" height="48" rx="14" fill="#fdd5dc"/><rect x="245" y="135" width="150" height="18" rx="9" fill="white" opacity=".65"/><circle cx="233" cy="288" r="9" fill="#f4a5b9"/><circle cx="320" cy="288" r="9" fill="#f4a5b9"/><circle cx="407" cy="288" r="9" fill="#f4a5b9"/><rect x="279" y="108" width="11" height="32" rx="5.5" fill="#d96a3a"/><rect x="314" y="103" width="11" height="37" rx="5.5" fill="#7ec8e3"/><rect x="350" y="108" width="11" height="32" rx="5.5" fill="#b5e8c0"/><ellipse cx="284" cy="104" rx="7" ry="10" fill="#ffcc44" opacity=".9"/><ellipse cx="319" cy="99" rx="7" ry="10" fill="#ffcc44" opacity=".9"/><ellipse cx="355" cy="104" rx="7" ry="10" fill="#ffcc44" opacity=".9"/><path d="M118 58l3-7 3 7 7 3-7 3-3 7-3-7-7-3z" fill="#ffd700" opacity=".75"/><path d="M512 46l2-6 2 6 6 2-6 2-2 6-2-6-6-2z" fill="#ffd700" opacity=".65"/><path d="M556 198l2-5 2 5 5 2-5 2-2 5-2-5-5-2z" fill="#f4a5b9" opacity=".65"/></svg>`,
+
+  // Balloons — lavender/gold
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><defs><linearGradient id="fb1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5e8ff"/><stop offset="100%" stop-color="#ddd0f8"/></linearGradient></defs><rect width="640" height="360" fill="url(#fb1)"/><ellipse cx="200" cy="160" rx="48" ry="62" fill="#c9a6f0" opacity=".85"/><path d="M200 222 Q198 250 196 270" stroke="#c9a6f0" stroke-width="2" fill="none"/><ellipse cx="295" cy="130" rx="52" ry="68" fill="#f9c46a" opacity=".85"/><path d="M295 198 Q293 230 290 260" stroke="#f9c46a" stroke-width="2" fill="none"/><ellipse cx="395" cy="145" rx="48" ry="64" fill="#a8d8ea" opacity=".85"/><path d="M395 209 Q393 238 391 265" stroke="#a8d8ea" stroke-width="2" fill="none"/><ellipse cx="480" cy="170" rx="44" ry="58" fill="#f4a5b9" opacity=".85"/><path d="M480 228 Q478 255 476 278" stroke="#f4a5b9" stroke-width="2" fill="none"/><path d="M196 270 Q240 285 290 260 Q340 245 391 265 Q430 278 476 278" stroke="#8a6a9a" stroke-width="1.5" fill="none" opacity=".4"/><ellipse cx="200" cy="155" rx="18" ry="22" fill="white" opacity=".25"/><ellipse cx="295" cy="123" rx="20" ry="24" fill="white" opacity=".25"/><ellipse cx="395" cy="138" rx="18" ry="22" fill="white" opacity=".25"/><ellipse cx="480" cy="163" rx="17" ry="21" fill="white" opacity=".25"/><circle cx="100" cy="80" r="7" fill="#f9c46a" opacity=".6"/><circle cx="560" cy="70" r="9" fill="#c9a6f0" opacity=".55"/><circle cx="80" cy="290" r="6" fill="#a8d8ea" opacity=".55"/><circle cx="575" cy="300" r="8" fill="#f4a5b9" opacity=".55"/><path d="M540 130l3-7 3 7 7 3-7 3-3 7-3-7-7-3z" fill="#ffd700" opacity=".7"/><path d="M95 190l2-5 2 5 5 2-5 2-2 5-2-5-5-2z" fill="#ffd700" opacity=".65"/></svg>`,
+
+  // Gifts — sage green / blush
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><defs><linearGradient id="fb2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8f5e9"/><stop offset="100%" stop-color="#dce8d8"/></linearGradient></defs><rect width="640" height="360" fill="url(#fb2)"/><rect x="240" y="230" width="160" height="110" rx="10" fill="#a8c5a0"/><rect x="232" y="220" width="176" height="24" rx="8" fill="#bcd4b4"/><rect x="312" y="220" width="16" height="120" fill="white" opacity=".45"/><path d="M320 220 Q290 195 270 175 Q255 160 280 158 Q305 156 320 180" fill="#f4a5b9" opacity=".75"/><path d="M320 220 Q350 195 370 175 Q385 160 360 158 Q335 156 320 180" fill="#f4a5b9" opacity=".75"/><rect x="370" y="255" width="115" height="85" rx="10" fill="#c8b4d8"/><rect x="363" y="246" width="129" height="22" rx="8" fill="#d8c4e8"/><rect x="421" y="246" width="14" height="94" fill="white" opacity=".4"/><path d="M428 246 Q408 226 393 210 Q380 197 400 196 Q420 195 428 218" fill="#f9c46a" opacity=".7"/><path d="M428 246 Q448 226 463 210 Q476 197 456 196 Q436 195 428 218" fill="#f9c46a" opacity=".7"/><rect x="155" y="265" width="100" height="75" rx="10" fill="#a8c5d8"/><rect x="148" y="256" width="114" height="20" rx="8" fill="#b8d4e8"/><rect x="200" y="256" width="12" height="84" fill="white" opacity=".4"/><path d="M206 256 Q190 240 178 226 Q167 215 183 214 Q199 213 206 234" fill="#f4a5b9" opacity=".7"/><path d="M206 256 Q222 240 234 226 Q245 215 229 214 Q213 213 206 234" fill="#f4a5b9" opacity=".7"/><circle cx="90" cy="80" r="11" fill="#a8c5a0" opacity=".55"/><circle cx="555" cy="95" r="14" fill="#c8b4d8" opacity=".5"/><circle cx="115" cy="290" r="8" fill="#f9c46a" opacity=".55"/><circle cx="530" cy="280" r="10" fill="#a8c5d8" opacity=".55"/><path d="M505 55l3-8 3 8 8 3-8 3-3 8-3-8-8-3z" fill="#ffd700" opacity=".7"/><path d="M132 145l2-6 2 6 6 2-6 2-2 6-2-6-6-2z" fill="#ffd700" opacity=".65"/></svg>`,
+
+  // Stars & sparkles — amber/cream
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><defs><linearGradient id="fb3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff8e8"/><stop offset="100%" stop-color="#fae0b8"/></linearGradient></defs><rect width="640" height="360" fill="url(#fb3)"/><path d="M320 80 L332 112 L368 112 L340 132 L352 164 L320 144 L288 164 L300 132 L272 112 L308 112 Z" fill="#ffd700" opacity=".85"/><path d="M160 140 L168 163 L194 163 L173 177 L181 200 L160 186 L139 200 L147 177 L126 163 L152 163 Z" fill="#f9c46a" opacity=".75"/><path d="M480 120 L488 143 L514 143 L493 157 L501 180 L480 166 L459 180 L467 157 L446 143 L472 143 Z" fill="#f4a5b9" opacity=".75"/><path d="M100 240 L106 258 L125 258 L110 268 L116 286 L100 276 L84 286 L90 268 L75 258 L94 258 Z" fill="#c9a6f0" opacity=".7"/><path d="M545 230 L551 248 L570 248 L555 258 L561 276 L545 266 L529 276 L535 258 L520 248 L539 248 Z" fill="#7ec8e3" opacity=".7"/><circle cx="420" cy="260" r="9" fill="#ffd700" opacity=".6"/><circle cx="215" cy="250" r="7" fill="#ffd700" opacity=".6"/><circle cx="580" cy="160" r="8" fill="#f9c46a" opacity=".55"/><circle cx="60" cy="155" r="10" fill="#f4a5b9" opacity=".55"/><circle cx="350" cy="300" r="12" fill="#c9a6f0" opacity=".5"/><circle cx="290" cy="50" r="8" fill="#7ec8e3" opacity=".5"/><path d="M75 60l2-5 2 5 5 2-5 2-2 5-2-5-5-2z" fill="#ffd700" opacity=".7"/><path d="M570 290l2-5 2 5 5 2-5 2-2 5-2-5-5-2z" fill="#ffd700" opacity=".65"/><path d="M440 50l3-6 3 6 6 3-6 3-3 6-3-6-6-3z" fill="#f9c46a" opacity=".65"/><path d="M185 310l2-5 2 5 5 2-5 2-2 5-2-5-5-2z" fill="#f4a5b9" opacity=".6"/></svg>`,
 ];
 
-/** Call this to get a fresh hero image URL (random prompt + random seed). */
-export function generateHeroImageUrl(seed?: number): string {
-  const s = seed ?? Math.floor(Math.random() * 1000);
-  const prompt = HERO_PROMPTS[Math.floor(Math.random() * HERO_PROMPTS.length)];
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=800&nologo=true&seed=${s}`;
+/** Returns a base64 data URL for a random fallback SVG. */
+export function getFallbackImageUrl(): string {
+  const svg = FALLBACK_SVGS[Math.floor(Math.random() * FALLBACK_SVGS.length)];
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -85,16 +89,10 @@ export function buildEmailHTML(
   mood = "Sunny",
   fuel = "Coffee",
   logoUrl?: string,
-  heroImageUrl?: string,       // if provided, used as-is; otherwise a fresh one is generated
+  heroImageUrl?: string,       // base64 data URL or external URL; empty/undefined → SVG fallback
   paletteId?: string           // if provided, looked up in SUNRISE_PALETTES; else random
 ): string {
-  const resolvedImageUrl =
-    heroImageUrl ||
-    generateHeroImageUrl(
-      illustrationIndex !== undefined && illustrationIndex >= 0
-        ? illustrationIndex * 137 + 42
-        : undefined
-    );
+  const resolvedImageUrl = heroImageUrl || getFallbackImageUrl();
 
   const palette = resolvePalette(paletteId);
 
