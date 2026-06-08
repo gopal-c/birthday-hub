@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   // Generate fresh values when none supplied (i.e. on Regenerate).
   // When the caller passes existing values they are reused (edit mode).
-  const resolvedImageUrl: string = inputImageUrl || await generateBirthdayImage(name || "", department || "");
+  const resolvedImageUrl: string = inputImageUrl || await generateBirthdayImage();
   const resolvedPalette = resolvePalette(inputPaletteId || undefined);
 
   const html = buildEmailHTML(

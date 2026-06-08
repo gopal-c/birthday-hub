@@ -90,7 +90,7 @@ Return ONLY a valid JSON object:
             fuel    = parsed.fuel    || fuel;
           } catch { /* keep defaults */ }
 
-          const heroImageUrl = await generateBirthdayImage(employee.name, employee.department || "");
+          const heroImageUrl = await generateBirthdayImage();
           const palette      = resolvePalette();
           const html = buildEmailHTML(
             employee.name, employee.department, message, fromName,

@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   const logoUrl = `${origin}/rezolve.gif`;
 
   // Use provided heroImageUrl (from preview/scheduled); generate fresh one for manual sends
-  const resolvedImageUrl = heroImageUrl || await generateBirthdayImage(employee.name, employee.department || "");
+  const resolvedImageUrl = heroImageUrl || await generateBirthdayImage();
 
   const html = buildEmailHTML(
     employee.name, employee.department, message, fromName,
