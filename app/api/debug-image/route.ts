@@ -1,29 +1,21 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const prompts = ['birthday cake candles pastel pink aesthetic'];
+  // First list available models
+  const listRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`
+  );
+  const listData = await listRes.json();
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instances: [{ prompt: prompts[0] }],
-          parameters: { sampleCount: 1, aspectRatio: '16:9' },
-        }),
-      }
-    );
+  // Filter image-related models
+  const imageModels = listData.models?.filter((m: { name: string; supportedGenerationMethods?: string[] }) =>
+    m.name.includes('imagen') ||
+    m.name.includes('image') ||
+    m.supportedGenerationMethods?.includes('predict')
+  ).map((m: { name: string; supportedGenerationMethods?: string[] }) => ({
+    name: m.name,
+    methods: m.supportedGenerationMethods,
+  }));
 
-    const data = await res.json();
-    return NextResponse.json({
-      status: res.status,
-      statusText: res.statusText,
-      data,
-      geminiKeyPresent: !!process.env.GEMINI_API_KEY,
-    });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) });
-  }
+  return NextResponse.json({ imageModels });
 }
