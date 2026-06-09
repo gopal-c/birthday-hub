@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { getEmployee, appendLog, updateScheduledSendStatus } from "@/lib/storage";
 import { buildEmailHTML } from "@/lib/email-template";
-import { generateBirthdayImage } from "@/lib/generate-image";
 import { randomUUID } from "crypto";
 
 function getTransporter(gmailUser: string, gmailAppPassword: string) {
@@ -45,12 +44,9 @@ export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
   const logoUrl = `${origin}/rezolve.gif`;
 
-  // Use provided heroImageUrl (from preview/scheduled); generate fresh one for manual sends
-  const resolvedImageUrl = heroImageUrl || await generateBirthdayImage();
-
   const html = buildEmailHTML(
     employee.name, employee.department, message, fromName,
-    undefined, mood, fuel, logoUrl, resolvedImageUrl, paletteId
+    undefined, mood, fuel, logoUrl, undefined, paletteId
   );
 
   try {

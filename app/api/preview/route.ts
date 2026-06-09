@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { buildEmailHTML, resolvePalette } from "@/lib/email-template";
-import { generateBirthdayImage } from "@/lib/generate-image";
 
 export async function POST(req: Request) {
   const {
@@ -8,17 +7,12 @@ export async function POST(req: Request) {
     department,
     message,
     fromName: bodyFromName,
-    imageUrl: inputImageUrl,
     paletteId: inputPaletteId,
     mood,
     fuel,
   } = await req.json();
 
   const fromName = bodyFromName || process.env.GMAIL_FROM_NAME || "The HR Team";
-
-  // Generate fresh values when none supplied (i.e. on Regenerate).
-  // When the caller passes existing values they are reused (edit mode).
-  const resolvedImageUrl: string = inputImageUrl || await generateBirthdayImage();
   const resolvedPalette = resolvePalette(inputPaletteId || undefined);
 
   const html = buildEmailHTML(
@@ -30,13 +24,13 @@ export async function POST(req: Request) {
     mood || "Sunny",
     fuel || "Coffee",
     undefined,
-    resolvedImageUrl,
+    undefined,
     resolvedPalette.id
   );
 
   return NextResponse.json({
     html,
-    imageUrl: resolvedImageUrl,
+    imageUrl: "",
     paletteId: resolvedPalette.id,
   });
 }

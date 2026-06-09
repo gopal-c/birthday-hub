@@ -6,7 +6,6 @@ import {
   getDueScheduledSends, updateScheduledSendStatus, getSettings,
 } from "@/lib/storage";
 import { buildEmailHTML, resolvePalette } from "@/lib/email-template";
-import { generateBirthdayImage } from "@/lib/generate-image";
 import { randomUUID } from "crypto";
 
 // Runs every 15 minutes via Vercel Cron.
@@ -90,11 +89,10 @@ Return ONLY a valid JSON object:
             fuel    = parsed.fuel    || fuel;
           } catch { /* keep defaults */ }
 
-          const heroImageUrl = await generateBirthdayImage();
-          const palette      = resolvePalette();
+          const palette = resolvePalette();
           const html = buildEmailHTML(
             employee.name, employee.department, message, fromName,
-            undefined, mood, fuel, logoUrl, heroImageUrl, palette.id
+            undefined, mood, fuel, logoUrl, undefined, palette.id
           );
 
           // Build CC list based on ccMode setting
