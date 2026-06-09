@@ -17,7 +17,7 @@ export function resolvePalette(id?: string): Palette {
 
 // ── Premium SVG illustrations ─────────────────────────────────────────────────
 
-const svg1 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" width="100%" height="220" style="display:block;">
+const svg1 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
   <rect width="560" height="220" fill="#FDF0F0"/>
   <!-- dotted borders -->
   <line x1="0" y1="7" x2="560" y2="7" stroke="#F9C8C8" stroke-width="2" stroke-dasharray="4,7" opacity=".9"/>
@@ -84,7 +84,7 @@ const svg1 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" widt
   <path d="M348,208 L350,203 L352,208 L357,210 L352,212 L350,217 L348,212 L343,210Z" fill="#F4C430" opacity=".6"/>
 </svg>`;
 
-const svg2 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" width="100%" height="220" style="display:block;">
+const svg2 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
   <defs>
     <radialGradient id="b2bg" cx="50%" cy="50%" r="60%">
       <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
@@ -152,7 +152,7 @@ const svg2 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" widt
   <circle cx="484" cy="200" r="4" fill="#F4C430" opacity=".55"/>
 </svg>`;
 
-const svg3 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" width="100%" height="220" style="display:block;">
+const svg3 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
   <rect width="560" height="220" fill="#F0F7F4"/>
   <!-- border frame -->
   <rect x="6" y="6" width="548" height="208" rx="10" fill="none" stroke="#A5D6A7" stroke-width="1.5" opacity=".6"/>
@@ -215,7 +215,7 @@ const svg3 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" widt
   <circle cx="390" cy="112" r="4" fill="white" opacity=".65"/>
 </svg>`;
 
-const svg4 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" width="100%" height="220" style="display:block;">
+const svg4 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
   <defs>
     <linearGradient id="s4bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#FDFBF0"/>
@@ -293,7 +293,7 @@ const svg4 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" widt
   <circle cx="385" cy="185" r="3" fill="#FFD700" opacity=".4"/>
 </svg>`;
 
-const svg5 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" width="100%" height="220" style="display:block;">
+const svg5 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
   <rect width="560" height="220" fill="#FDFFFE"/>
   <!-- scattered petals outside wreath -->
   <ellipse cx="95" cy="55" rx="8" ry="5" fill="#FFB7C5" opacity=".5" transform="rotate(-30,95,55)"/>
@@ -388,7 +388,7 @@ const svg5 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" widt
   <path d="M291.5,141 Q294,135 291.5,130 Q289,135 291.5,141Z" fill="#FFEF88"/>
 </svg>`;
 
-const svg6 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" width="100%" height="220" style="display:block;">
+const svg6 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
   <rect width="560" height="220" fill="#FFFFFF"/>
   <!-- CONFETTI EXPLOSION from center ~(280,85) -->
   <!-- Rectangles – coral, purple, blue, pink, teal, orange, yellow -->
