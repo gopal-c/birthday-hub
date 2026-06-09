@@ -18,7 +18,7 @@ export function resolvePalette(id?: string): Palette {
 // ── Premium SVG illustrations ─────────────────────────────────────────────────
 
 const svg1 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
-  <rect width="560" height="220" fill="#FDF0F0"/>
+  <rect width="600" height="240" fill="#FDF0F0"/>
   <!-- dotted borders -->
   <line x1="0" y1="7" x2="560" y2="7" stroke="#F9C8C8" stroke-width="2" stroke-dasharray="4,7" opacity=".9"/>
   <line x1="0" y1="213" x2="560" y2="213" stroke="#F9C8C8" stroke-width="2" stroke-dasharray="4,7" opacity=".9"/>
@@ -91,8 +91,8 @@ const svg2 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" widt
       <stop offset="100%" stop-color="#F5EFE0" stop-opacity="0.5"/>
     </radialGradient>
   </defs>
-  <rect width="560" height="220" fill="#FEFAF5"/>
-  <rect width="560" height="220" fill="url(#b2bg)"/>
+  <rect width="600" height="240" fill="#FEFAF5"/>
+  <rect width="600" height="240" fill="url(#b2bg)"/>
   <!-- BALLOONS (ellipse + highlight + triangle knot) -->
   <!-- 1 Lavender -->
   <ellipse cx="108" cy="108" rx="38" ry="50" fill="#E8C4E8"/>
@@ -153,7 +153,7 @@ const svg2 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" widt
 </svg>`;
 
 const svg3 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
-  <rect width="560" height="220" fill="#F0F7F4"/>
+  <rect width="600" height="240" fill="#F0F7F4"/>
   <!-- border frame -->
   <rect x="6" y="6" width="548" height="208" rx="10" fill="none" stroke="#A5D6A7" stroke-width="1.5" opacity=".6"/>
   <!-- background confetti dots -->
@@ -226,7 +226,7 @@ const svg4 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" widt
       <stop offset="100%" stop-color="#FFB300" stop-opacity=".6"/>
     </linearGradient>
   </defs>
-  <rect width="560" height="220" fill="url(#s4bg)"/>
+  <rect width="600" height="240" fill="url(#s4bg)"/>
   <!-- subtle shimmer lines -->
   <line x1="0" y1="40" x2="560" y2="40" stroke="#FFD700" stroke-width=".8" opacity=".15"/>
   <line x1="0" y1="100" x2="560" y2="100" stroke="#FFD700" stroke-width=".8" opacity=".1"/>
@@ -294,7 +294,7 @@ const svg4 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" widt
 </svg>`;
 
 const svg5 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
-  <rect width="560" height="220" fill="#FDFFFE"/>
+  <rect width="600" height="240" fill="#FDFFFE"/>
   <!-- scattered petals outside wreath -->
   <ellipse cx="95" cy="55" rx="8" ry="5" fill="#FFB7C5" opacity=".5" transform="rotate(-30,95,55)"/>
   <ellipse cx="460" cy="48" rx="7" ry="4" fill="#FFE4B5" opacity=".5" transform="rotate(25,460,48)"/>
@@ -389,7 +389,7 @@ const svg5 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" widt
 </svg>`;
 
 const svg6 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="100%" height="240" style="display:block;">
-  <rect width="560" height="220" fill="#FFFFFF"/>
+  <rect width="600" height="240" fill="#FFFFFF"/>
   <!-- CONFETTI EXPLOSION from center ~(280,85) -->
   <!-- Rectangles – coral, purple, blue, pink, teal, orange, yellow -->
   <rect x="278" y="40" width="14" height="7" rx="2" fill="#FF6B9D" transform="rotate(10,285,44)"/>
