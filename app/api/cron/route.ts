@@ -6,6 +6,8 @@ import {
   getDueScheduledSends, updateScheduledSendStatus, getSettings,
 } from "@/lib/storage";
 import { buildEmailHTML, resolvePalette } from "@/lib/email-template";
+import { illustrations } from "@/lib/illustrations";
+import { svgToBase64 } from "@/lib/svg-to-base64";
 import { randomUUID } from "crypto";
 
 // Runs every 15 minutes via Vercel Cron.
@@ -90,9 +92,11 @@ Return ONLY a valid JSON object:
           } catch { /* keep defaults */ }
 
           const palette = resolvePalette();
+          const heroSvg = illustrations[Math.floor(Math.random() * illustrations.length)];
+          const heroImageUrl = await svgToBase64(heroSvg);
           const html = buildEmailHTML(
             employee.name, employee.department, message, fromName,
-            undefined, mood, fuel, logoUrl, undefined, palette.id
+            undefined, mood, fuel, logoUrl, heroImageUrl, palette.id
           );
 
           // Build CC list based on ccMode setting
@@ -157,9 +161,14 @@ Return ONLY a valid JSON object:
           ? `${process.env.NEXT_PUBLIC_APP_URL}/rezolve.gif`
           : undefined;
 
+        let jobHeroImageUrl = job.heroImageUrl || "";
+        if (!jobHeroImageUrl) {
+          const svg = illustrations[Math.floor(Math.random() * illustrations.length)];
+          jobHeroImageUrl = await svgToBase64(svg);
+        }
         const html = buildEmailHTML(
           job.employeeName, "", job.message, job.fromName,
-          undefined, job.mood, job.fuel, logoUrl, job.heroImageUrl, job.paletteId
+          undefined, job.mood, job.fuel, logoUrl, jobHeroImageUrl, job.paletteId
         );
 
         const transporter = nodemailer.createTransport({

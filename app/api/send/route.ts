@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { getEmployee, appendLog, updateScheduledSendStatus } from "@/lib/storage";
 import { buildEmailHTML } from "@/lib/email-template";
+import { illustrations } from "@/lib/illustrations";
+import { svgToBase64 } from "@/lib/svg-to-base64";
 import { randomUUID } from "crypto";
 
 function getTransporter(gmailUser: string, gmailAppPassword: string) {
@@ -44,9 +46,15 @@ export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
   const logoUrl = `${origin}/rezolve.gif`;
 
+  let resolvedHeroImageUrl: string = heroImageUrl || "";
+  if (!resolvedHeroImageUrl) {
+    const svg = illustrations[Math.floor(Math.random() * illustrations.length)];
+    resolvedHeroImageUrl = await svgToBase64(svg);
+  }
+
   const html = buildEmailHTML(
     employee.name, employee.department, message, fromName,
-    undefined, mood, fuel, logoUrl, undefined, paletteId
+    undefined, mood, fuel, logoUrl, resolvedHeroImageUrl, paletteId
   );
 
   try {

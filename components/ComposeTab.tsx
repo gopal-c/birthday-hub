@@ -65,15 +65,20 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
         }
       } catch { /* keep existing value */ }
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: target.name, department: target.department, notes: target.notes }),
-      });
-      const data = await res.json();
+      const [groqRes, illustRes] = await Promise.all([
+        fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: target.name, department: target.department, notes: target.notes }),
+        }),
+        fetch("/api/illustration"),
+      ]);
+      const data = await groqRes.json();
+      const illustData = await illustRes.json();
+      const freshImageUrl = illustData.imageUrl || "";
+      setHeroImageUrl(freshImageUrl);
+
       const text = data.message || "";
-      // Capture new mood/fuel locally before setting state so fetchPreview
-      // (called immediately below) doesn't see stale closure values.
       const newMood = data.mood || "Sunny";
       const newFuel = data.fuel || "Coffee";
       setMood(newMood);
@@ -81,9 +86,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
       setMessage(text);
       if (text) {
         try {
-          // Pass "" for imageUrl + paletteId → server generates fresh values
-          // and returns them; we then lock both in state for subsequent edits.
-          await fetchPreview(target, text, "", newMood, newFuel, "", freshFromName);
+          await fetchPreview(target, text, freshImageUrl, newMood, newFuel, "", freshFromName);
         } catch (previewErr) {
           console.error("fetchPreview failed:", previewErr);
         }
