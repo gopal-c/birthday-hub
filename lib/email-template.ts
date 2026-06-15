@@ -874,7 +874,7 @@ export function buildEmailHTML(
             </table>
 
             <!-- Hero illustration -->
-            <div style="border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+            <div style="height:240px;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
               ${randomSVG}
             </div>
 
