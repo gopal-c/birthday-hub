@@ -71,7 +71,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: target.name, department: target.department, notes: target.notes }),
         }),
-        fetch("/api/illustration"),
+        fetch(`/api/illustration?_=${Date.now()}`),
       ]);
       const data = await groqRes.json();
       const illustData = await illustRes.json();
