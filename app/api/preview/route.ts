@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildEmailHTML, resolvePalette } from "@/lib/email-template";
-import { illustrations } from "@/lib/illustrations";
-import { svgToBase64 } from "@/lib/svg-to-base64";
+import { generateIllustrationUrl } from "@/lib/generate-illustration";
 
 export async function POST(req: Request) {
   const {
@@ -18,11 +17,7 @@ export async function POST(req: Request) {
   const fromName = bodyFromName || process.env.GMAIL_FROM_NAME || "The HR Team";
   const resolvedPalette = resolvePalette(inputPaletteId || undefined);
 
-  let imageUrl: string = lockedImageUrl || "";
-  if (!imageUrl) {
-    const svg = illustrations[Math.floor(Math.random() * illustrations.length)];
-    imageUrl = await svgToBase64(svg);
-  }
+  const imageUrl = lockedImageUrl || await generateIllustrationUrl();
 
   const html = buildEmailHTML(
     name || "",

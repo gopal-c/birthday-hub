@@ -23,7 +23,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
   const [pendingSend, setPendingSend] = useState(false);
   const [mood, setMood] = useState("Sunny");
   const [fuel, setFuel] = useState("Coffee");
-  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [paletteId, setPaletteId] = useState("");
   const [fromName, setFromName] = useState("The HR Team");
 
@@ -50,7 +50,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
     setGenerating(true);
     setMessage("");
     setEmailHTML("");
-    setHeroImageUrl("");   // clear so the next preview gets a fresh image + palette
+    setImageUrl("");
     setPaletteId("");
     setSendStatus("idle");
     try {
@@ -76,7 +76,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
       const data = await groqRes.json();
       const illustData = await illustRes.json();
       const freshImageUrl = illustData.imageUrl || "";
-      setHeroImageUrl(freshImageUrl);
+      setImageUrl(freshImageUrl);
 
       const text = data.message || "";
       const newMood = data.mood || "Sunny";
@@ -86,7 +86,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
       setMessage(text);
       if (text) {
         try {
-          await fetchPreview(target, text, freshImageUrl, newMood, newFuel, "", freshFromName);
+          await fetchPreview(target, text, freshImageUrl, newMood, newFuel, freshFromName);
         } catch (previewErr) {
           console.error("fetchPreview failed:", previewErr);
         }
@@ -98,15 +98,12 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
     setGenerating(false);
   }
 
-  // Pass empty strings for lockedImageUrl / lockedPaletteId to get fresh values
-  // (used by generate()). Pass the stored state values to lock them (edit mode).
   async function fetchPreview(
     emp: Employee,
     msg: string,
-    lockedImageUrl: string,
-    currentMood: string,
-    currentFuel: string,
-    lockedPaletteId: string,
+    imgUrl: string,
+    currentMood?: string,
+    currentFuel?: string,
     currentFromName?: string
   ) {
     const res = await fetch("/api/preview", {
@@ -117,21 +114,20 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
         department: emp.department,
         message: msg,
         fromName: currentFromName ?? fromName,
-        imageUrl: lockedImageUrl,     // empty → server generates new URL
-        paletteId: lockedPaletteId,   // empty → server picks random palette
-        mood: currentMood,
-        fuel: currentFuel,
+        imageUrl: imgUrl,
+        paletteId,
+        mood: currentMood ?? mood,
+        fuel: currentFuel ?? fuel,
       }),
     });
     const data = await res.json();
     setEmailHTML(data.html || "");
-    if (data.imageUrl)  setHeroImageUrl(data.imageUrl);
     if (data.paletteId) setPaletteId(data.paletteId);
   }
 
   async function handleMessageChange(val: string) {
     setMessage(val);
-    if (selected) await fetchPreview(selected, val, heroImageUrl, mood, fuel, paletteId);
+    if (selected) await fetchPreview(selected, val, imageUrl);
   }
 
   async function doSend(creds: SendCredentials, cc: string[], scheduledAt: string | null, ccBehavior: CcBehavior) {
@@ -149,7 +145,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
       fromName:         creds.fromName,
       mood,
       fuel,
-      heroImageUrl,
+      heroImageUrl: imageUrl,
       paletteId,
       cc,
       ccBehavior,
