@@ -75,7 +75,7 @@ export function buildEmailHTML(
                     box-shadow:0 4px 16px -6px rgba(58,26,42,0.18),0 1px 0 rgba(255,255,255,0.7) inset;
                     font-size:13px;font-weight:700;color:#3a1a2a;
                     font-family:'Inter Tight',system-ui,sans-serif;letter-spacing:-0.01em;">
-         ðŸŽˆ Rezolve
+         🎈 Rezolve
        </span>`;
 
   return `<!DOCTYPE html>
@@ -148,7 +148,7 @@ export function buildEmailHTML(
                           style="background:rgba(255,255,255,0.55);border-radius:14px;border:1px solid rgba(255,255,255,0.8);">
                           <tr><td style="padding:12px 14px;">
                             <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#3a1a2a;opacity:0.55;font-weight:600;font-family:'Inter Tight',system-ui,sans-serif;">Today</div>
-                            <div style="font-size:22px;margin-top:4px;line-height:1;">ðŸŽ‚</div>
+                            <div style="font-size:22px;margin-top:4px;line-height:1;">🎂</div>
                           </td></tr>
                         </table>
                       </td>
@@ -198,7 +198,7 @@ export function buildEmailHTML(
               <tr>
                 <td align="center">
                   <span style="font-size:11px;color:#3a1a2a;opacity:0.5;font-weight:500;letter-spacing:0.02em;font-family:'Inter Tight',system-ui,sans-serif;">
-                    Crafted with AI âœ¦ Design Team
+                    Crafted with AI ✦ Design Team
                   </span>
                 </td>
               </tr>
