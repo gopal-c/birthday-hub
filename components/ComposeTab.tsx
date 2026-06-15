@@ -86,7 +86,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
       setMessage(text);
       if (text) {
         try {
-          await fetchPreview(target, text, freshImageUrl, newMood, newFuel, freshFromName);
+          await fetchPreview(target, text, freshImageUrl, newMood, newFuel, freshFromName, "");
         } catch (previewErr) {
           console.error("fetchPreview failed:", previewErr);
         }
@@ -104,7 +104,8 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
     imgUrl: string,
     currentMood?: string,
     currentFuel?: string,
-    currentFromName?: string
+    currentFromName?: string,
+    currentPaletteId?: string
   ) {
     const res = await fetch("/api/preview", {
       method: "POST",
@@ -115,7 +116,7 @@ export default function ComposeTab({ employees, initialEmployee, onSent, onSched
         message: msg,
         fromName: currentFromName ?? fromName,
         imageUrl: imgUrl,
-        paletteId,
+        paletteId: currentPaletteId !== undefined ? currentPaletteId : paletteId,
         mood: currentMood ?? mood,
         fuel: currentFuel ?? fuel,
       }),
