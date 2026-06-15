@@ -1,4 +1,4 @@
-// â”€â”€ Background palettes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Background palettes ───────────────────────────────────────────────────────
 interface Palette { id: string; label: string; bg: string; }
 
 export const SUNRISE_PALETTES: Palette[] = [
@@ -15,7 +15,7 @@ export function resolvePalette(id?: string): Palette {
     SUNRISE_PALETTES[Math.floor(Math.random() * SUNRISE_PALETTES.length)];
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(): string {
   const now = new Date();
@@ -38,18 +38,18 @@ function esc(str: string): string {
     .replace(/"/g, "&quot;");
 }
 
-// â”€â”€ Template â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Template ──────────────────────────────────────────────────────────────────
 
 export function buildEmailHTML(
   name: string,
   department: string,
   message: string,
   fromName = "The HR Team",
-  illustrationIndex?: number,   // unused â€” kept for call-site compatibility
+  illustrationIndex?: number,   // unused — kept for call-site compatibility
   mood = "Sunny",
   fuel = "Coffee",
   logoUrl?: string,
-  heroImageUrl?: string,        // unused â€” kept for call-site compatibility
+  heroImageUrl?: string,        // unused — kept for call-site compatibility
   paletteId?: string
 ): string {
   const palette = resolvePalette(paletteId);
