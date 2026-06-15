@@ -1019,8 +1019,7 @@ const svg8 = `<svg width="600" height="240" viewBox="0 0 600 240" fill="none" xm
 <rect width="600" height="240" fill="white"/>
 </clipPath>
 </defs>
-</svg>
-`;
+</svg>`;
 
 const svg9 = `<svg width="600" height="240" viewBox="0 0 600 240" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_7_1023)">
