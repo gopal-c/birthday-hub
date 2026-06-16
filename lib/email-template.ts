@@ -197,7 +197,7 @@ export function buildEmailHTML(
               style="margin-top:20px;">
               <tr>
                 <td align="center">
-                  <span style="font-size:11px;color:#3a1a2a;opacity:0.5;font-weight:500;letter-spacing:0.02em;font-family:'Inter Tight',system-ui,sans-serif;">
+                  <span style="font-size:11px;color:#fff;opacity:0.5;font-weight:500;letter-spacing:0.02em;font-family:'Inter Tight',system-ui,sans-serif;">
                     Crafted with AI ✦ Design Team
                   </span>
                 </td>
