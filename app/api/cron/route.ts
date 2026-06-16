@@ -7,7 +7,6 @@ import {
 } from "@/lib/storage";
 import { buildEmailHTML, resolvePalette } from "@/lib/email-template";
 import { generateIllustrationUrl } from "@/lib/generate-illustration";
-import { list, del } from "@vercel/blob";
 import { randomUUID } from "crypto";
 
 // Runs every 15 minutes via Vercel Cron.
@@ -92,7 +91,7 @@ Return ONLY a valid JSON object:
           } catch { /* keep defaults */ }
 
           const palette = resolvePalette();
-          const heroImageUrl = await generateIllustrationUrl();
+          const heroImageUrl = generateIllustrationUrl();
           const html = buildEmailHTML(
             employee.name, employee.department, message, fromName,
             undefined, mood, fuel, logoUrl, heroImageUrl, palette.id
@@ -160,7 +159,7 @@ Return ONLY a valid JSON object:
           ? `${process.env.NEXT_PUBLIC_APP_URL}/rezolve.gif`
           : undefined;
 
-        const jobHeroImageUrl = job.heroImageUrl || await generateIllustrationUrl();
+        const jobHeroImageUrl = job.heroImageUrl || generateIllustrationUrl();
         const html = buildEmailHTML(
           job.employeeName, "", job.message, job.fromName,
           undefined, job.mood, job.fuel, logoUrl, jobHeroImageUrl, job.paletteId
@@ -204,23 +203,6 @@ Return ONLY a valid JSON object:
     }
   } catch (err) {
     console.error("Scheduled send phase error:", err);
-  }
-
-  // ── 3. Weekly blob cleanup ──────────────────────────────────────────────────
-  // Delete illustration PNGs older than 7 days to avoid storage bloat.
-  // Only runs when the day-of-week is Sunday (getDay() === 0).
-  if (new Date().getDay() === 0) {
-    try {
-      const { blobs } = await list({ prefix: "illustrations/" });
-      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      await Promise.all(
-        blobs
-          .filter((b) => new Date(b.uploadedAt).getTime() < weekAgo)
-          .map((b) => del(b.url))
-      );
-    } catch (err) {
-      console.error("Blob cleanup error:", err);
-    }
   }
 
   const year = new Date().getFullYear();

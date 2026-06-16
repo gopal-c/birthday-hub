@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const fromName = bodyFromName || process.env.GMAIL_FROM_NAME || "The HR Team";
   const resolvedPalette = resolvePalette(inputPaletteId || undefined);
 
-  const imageUrl = lockedImageUrl || await generateIllustrationUrl();
+  const imageUrl = lockedImageUrl || generateIllustrationUrl();
 
   const html = buildEmailHTML(
     name || "",

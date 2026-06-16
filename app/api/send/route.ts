@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
   const logoUrl = `${origin}/rezolve.gif`;
 
-  const resolvedHeroImageUrl = heroImageUrl || await generateIllustrationUrl();
+  const resolvedHeroImageUrl = heroImageUrl || generateIllustrationUrl();
 
   const html = buildEmailHTML(
     employee.name, employee.department, message, fromName,
